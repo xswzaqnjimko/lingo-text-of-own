@@ -262,8 +262,9 @@ For questions about licensing, please contact: [okmijnqazwsx69@gmail.com]
 
 - Built with [Streamlit](https://streamlit.io/)
 - Translation powered by [DeepL API](https://www.deepl.com/docs-api) and [deep-translator](https://github.com/nidhaloff/deep-translator)
-- Inspired by the challenge of learning languages through authentic literature
-- Name inspired by the "archive of our own" spirit — this is the users' own textbook, for learning languages the way they love.
+- Motivated by the creator's need of learning languages through fun text
+- Fascilitated by the creator's friend(s) during development
+- Name inspired by the "archive of our own" spirit - this is the users' own textbook, for learning languages the way they love.
 
 ## 📧 Contact
 
