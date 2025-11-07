@@ -1,6 +1,6 @@
 # lingo-text-of-own: Language Learning from User-Defined Literature Library 📚
 
-A Streamlit-based vocabulary learning tool that helps you learn foreign languages through literature that you like to read. Extract sentences from your local library, compare machine translations, and build your personalized vocabulary notebook with a gamified tracking system.
+A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature. Extract sentences from your local library, compare versions of translations, and build your personalized vocabulary notebook with a fun tracking system.
 
 ---
 
@@ -132,7 +132,7 @@ streamlit run main.py
 
 4. **Review & Manage**:
    - Navigate to "📖 Vocabulary Notebook" to see all saved words
-   - Click "好像认识" ("Seems familiar") to decrease HP (-1)
+   - Click "好像认识" ("Seems familiar", English UI to be updated) to decrease HP (-1)
    - Click "不太认识" ("Don't know well") to increase HP (+2)
    - View detailed encounter history for each word
    - Manage personal Notes; check related words; etc.
@@ -263,7 +263,7 @@ For questions about licensing, please contact: [okmijnqazwsx69@gmail.com]
 - Built with [Streamlit](https://streamlit.io/)
 - Translation powered by [DeepL API](https://www.deepl.com/docs-api) and [deep-translator](https://github.com/nidhaloff/deep-translator)
 - Inspired by the challenge of learning languages through authentic literature
-- Name inspired by the "archive of our own" spirit — this is the users' own textbook, for learning languages they way they love.
+- Name inspired by the "archive of our own" spirit — this is the users' own textbook, for learning languages the way they love.
 
 ## 📧 Contact
 
