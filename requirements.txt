@@ -1,4 +1,8 @@
+# Core dependencies
 streamlit>=1.28.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 deep-translator>=1.11.0
+
+# AI features (optional)
+anthropic>=0.18.0

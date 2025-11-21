@@ -1,88 +1,95 @@
-# lingo-text-of-own: Language Learning from User-Defined Literature Library 📚
+# lingo-text-of-own: Language Learning from User-Defined Literature Library
 
-A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature. Extract sentences from your local library, compare versions of translations, and build your personalized vocabulary notebook with a fun tracking system.
+A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking.
+
+This project was born from the need to learn languages through fanfiction and other engaging content, rather than textbooks. It now includes AI-powered features for semantic analysis and learning optimization.
 
 ---
 
 **Licenses:**
-- 💻 **Code**: [AGPL-3.0](LICENSE) - Ensures modifications stay open source
-- 📖 **Documentation**: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) - Free to share and adapt with attribution
+- Code: [AGPL-3.0](LICENSE) - Ensures modifications stay open source
+- Documentation: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) - Free to share and adapt with attribution
 
 ---
 
-## ✨ Features
+## Features
 
-### 📖 Smart Sentence Extraction
+### Core Functionality
+
+**Smart Sentence Extraction**
 - Random sentence selection from your local HTML library
-- Support for filtering by specific topics (originally designed for AO3 fanfiction)
+- Optional filtering by specific topics (originally designed for AO3 fanfiction)
 - Customizable content source
 
-### 🌐 Multi-Language Translation
-- **Currently Supported Languages**: Spanish, French, Italian (easily extensible)
-- **Dual Translation Engines**: 
-  - Google Translate (via `deep-translator`)
-  - DeepL API
-- Side-by-side comparison mode for translation quality assessment & easily locating/interpreting unfamiliar words
+**Multi-Language Translation**
+- Currently supports: Spanish, French, Italian (easily extensible)
+- Dual translation engines: Google Translate and DeepL API
+- Side-by-side comparison mode for quality assessment
 - Direct links to online dictionaries and text-to-speech
 
-### 📝 Intelligent Vocabulary Notebook
-- **Smart Tracking**: Automatically detects and consolidates word variations
-- **Rich Context**: Stores up to 128 encounters per word with:
-  - Original sentence from library work
-  - English reference translations (Google + DeepL)
-  - Target language translations (Google + DeepL)
-  - Source work metadata
-- **Encounter History**: 
-  - Index 0: First encounter (permanently preserved)
-  - Index 1-127: Recent encounters (circular buffer)
-- **Parent-Child Relationships**: Link related word forms together, helps learning
-- **Personal Notes**: Add custom annotations to any word, helps learning
+**Intelligent Vocabulary Notebook**
+- Automatic detection and consolidation of word variations
+- Rich context storage: up to 128 encounters per word
+- Stores original sentences, translations (both engines), and source metadata
+- Parent-child word relationships for learning word families
+- Personal notes for custom annotations
 
-### 🎮 Gamified Learning System
-- **HP (Health Points) System**: 
+**Gamified Learning System**
+- HP (Health Points) tracking system
   - Start with HP = 3
-  - "Don't know well" (+2 HP)
-  - "Seems familiar" (-1 HP)
-  - HP = 0 → Promoted to Hall of Fame
-- **Hall of Fame**: Showcase your mastered vocabulary
-  - Track days since mastery
-  - View first & final encounter details
-  - Breakthrough system (kick back to Vocabulary Notebook when needed)
-  - Special ✨ golden frame for 3+ breakthroughs
-- **Future Stats**: ATK, DEF, RES, SPD (placeholder for future features)
+  - "Don't know well" increases HP (+2)
+  - "Seems familiar" decreases HP (-1)
+  - HP = 0 promotes word to Hall of Fame
+- Hall of Fame for mastered vocabulary
+- Breakthrough system: return words to active study when needed
+- Progress tracking and statistics
 
-### 📊 Progress Tracking
-- Days since program start (customizable "birth date")
-- Total vocabulary count by language
-- Vocabulary management tools (rename, delete, set relationships, etc.)
-- Sortable views (recent encounters/reviews, first seen, encounter count, etc.)
+### AI-Powered Features (New)
 
-## 🚀 Installation
+**Agentic AI Enhancements**
+- ReAct-style vocabulary analysis: automatically suggests parent-child word relationships
+- Hierarchical learning difficulty diagnosis using LATS-inspired architecture
+- Multi-agent translation quality evaluation
+- Smart review suggestions based on learning patterns
+- Semantic-based related word recommendations (ideal for small datasets)
+
+**Internationalization**
+- UI language switching (Chinese/English)
+- Easy to extend to additional languages
+- Centralized translation management
+
+For details on AI features, see [AI_FEATURES.md](AI_FEATURES.md).
+
+---
+
+## Installation
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.8 or higher
 - DeepL API key (free tier: 500,000 characters/month)
+- Optional: Anthropic API key for AI features (free tier: $5 credit)
 
 ### Setup
 
-1. **Clone the repository**
+1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/language-learning-literature.git
-cd language-learning-literature
+git clone https://github.com/xswzaqnjimko/lingo-text-of-own.git
+cd lingo-text-of-own
 ```
 
-2. **Install dependencies**
+2. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Set up your API key**
+3. Configure API keys
 
 Choose one of the following methods:
 
-**Option A: Environment Variable (Recommended)**
+**Option A: Environment Variables (Recommended)**
 ```bash
-export DEEPL_API_KEY="your-api-key-here"
+export DEEPL_API_KEY="your-deepl-key"
+export ANTHROPIC_API_KEY="your-anthropic-key"  # optional, for AI features
 ```
 
 **Option B: Configuration File**
@@ -90,22 +97,20 @@ export DEEPL_API_KEY="your-api-key-here"
 Create a `config.json` file (not tracked by git):
 ```json
 {
-  "deepl_api_key": "your-api-key-here"
+  "deepl_api_key": "your-deepl-key",
+  "anthropic_api_key": "your-anthropic-key"
 }
 ```
 
-**Option C: Streamlit Secrets** (for deployment)
+See `config_example.json` for a template.
 
-Create `.streamlit/secrets.toml`:
-```toml
-DEEPL_API_KEY = "your-api-key-here"
-```
+4. Prepare your text library
 
-4. **Prepare your own library of literature**
+Place your HTML files in a directory (e.g., `library/`). The app currently expects Chinese source text with plans to support more languages. Update the `LOCAL_DIR` path in the code if needed.
 
-Place your HTML files in a directory (e.g., `library/`). The app expects HTML files with Chinese text content (supports for more languages planned). Update the `LOCAL_DIR` path in the code to point to your library directory.
+---
 
-## 📦 Usage
+## Usage
 
 ### Launch the App
 
@@ -117,161 +122,168 @@ streamlit run main.py
 
 1. **Configure Settings** (Sidebar):
    - Select target language(s)
+   - Choose UI language (Chinese/English)
    - Enable/disable translation comparison mode
-   - Toggle AO3-specific features if needed
+   - Toggle AO3-specific features if applicable
 
-2. **Extract & Translate**:
-   - Click "🎲 Draw a sentence & translate" to get a random sentence
+2. **Extract and Translate**:
+   - Click to draw a random sentence from your library
    - View translations in English and your target language(s)
-   - Listen to pronunciation via Google Translate or DeepL links
+   - Access pronunciation via Google Translate or DeepL links
 
 3. **Build Your Vocabulary**:
-   - Copy unknown words/phrases
-   - Click "📝 Add to {lang_name} vocabulary" to add to your vocabulary notebook
+   - Add unknown words/phrases to your notebook
    - System automatically tracks context and metadata
+   - Use AI features to analyze word relationships
 
-4. **Review & Manage**:
-   - Navigate to "📖 Vocabulary Notebook" to see all saved words
-   - Click "好像认识" ("Seems familiar", English UI to be updated) to decrease HP (-1)
-   - Click "不太认识" ("Don't know well") to increase HP (+2)
+4. **Review and Manage**:
+   - Navigate to Vocabulary Notebook to see all saved words
+   - Use "Seems familiar" / "Don't know well" buttons to track learning
    - View detailed encounter history for each word
-   - Manage personal Notes; check related words; etc.
+   - Add personal notes and set parent-child relationships
+   - Get AI-powered recommendations for related words to review
 
 5. **Track Progress**:
-   - Check "🏆 Hall of Fame" for mastered vocabulary
-   - Use management tools to organize (rename, delete, set parent-child relationships)
+   - Check Hall of Fame for mastered vocabulary
+   - Use management tools to organize your notebook
+   - View learning statistics and patterns
 
-## 🗂️ Project Structure
+---
+
+## Project Structure
 
 ```
 .
-├── main.py                 # Main Streamlit application
-├── vocabulary_db.py        # SQLite database operations
-├── vocabulary.db           # Database file (auto-generated)
-├── requirements.txt        # Python dependencies
-├── config.json            # Optional: API keys (not in git)
-├── .gitignore             # Git ignore rules
-└── library/               # Your HTML text files (not in git)
+├── main.py                      # Main Streamlit application
+├── vocabulary_db.py             # SQLite database operations
+├── agentic_features.py          # AI agent implementations
+├── i18n.py                      # Internationalization support
+├── vocabulary.db                # Database (auto-generated)
+├── requirements.txt             # Python dependencies
+├── config.json                  # API keys (not in git, see config_example.json)
+├── .gitignore                   # Git ignore rules
+├── library/                     # Your HTML text files (not in git)
+└── LICENSE, LICENSE-DOCS        # License files
 ```
 
-## 🛠️ Configuration
+---
+
+## Configuration
 
 ### Supported Languages
 
-Currently supports Spanish, French, and Italian as target languages. To add more languages, update the `SUPPORTED_LANGUAGES` dictionary in `main.py`:
-
-```python
-SUPPORTED_LANGUAGES = {
-    'de': {  # German
-        'name': 'German',
-        'tts_google': lambda text: f"https://translate.google.com/?sl=de&tl=en&text={quote_plus(text)}&op=translate",
-        'tts_deepl': lambda text: f"https://www.deepl.com/translator#de/en/{quote(text, safe='')}",
-        'word_pattern': r"[A-Za-zÄÖÜäöüß]+"
-    },
-    # Add more languages...
-}
-```
-
-### Default Language
-
-Change the `DEFAULT_LANG` variable in `main.py`:
-```python
-DEFAULT_LANG = 'es'  # Spanish (default)
-```
-
-## 💾 Data Management
+Currently supports Spanish, French, and Italian as target languages. To add more languages, update the `SUPPORTED_LANGUAGES` dictionary in `main.py`. See the code comments for details.
 
 ### Database Schema
 
-- **vocabulary**: Core vocabulary table with HP and stats
-- **encounters**: Detailed encounter history (up to 128 per word)
-- **hall_of_fame**: Mastered vocabulary archive
-- **metadata**: System configuration
+- `vocabulary`: Core vocabulary table with HP and stats
+- `encounters`: Detailed encounter history (up to 128 per word)
+- `hall_of_fame`: Mastered vocabulary archive
+- `hp_history`: HP change tracking for learning analysis (optional, for AI features)
+- `metadata`: System configuration
 
-### Backup
+### Data Management
 
+Backup your database regularly:
 ```bash
-# Manual backup
 cp vocabulary.db vocabulary_backup_$(date +%Y%m%d).db
-
-# View database
-sqlite3 vocabulary.db "SELECT word, encounter_count FROM vocabulary ORDER BY encounter_count DESC LIMIT 10;"
 ```
 
-### Export
-
+Export to CSV:
 ```bash
-# Export to CSV
 sqlite3 vocabulary.db ".mode csv" ".output vocabulary.csv" "SELECT * FROM vocabulary;"
 ```
 
-## 🎯 Future Features
+---
 
-- [ ] Review mode with spaced repetition
-- [ ] Combat stats calculation (ATK/DEF/RES/SPD)
-- [ ] Multiple source language (beyond Chinese) & target language support
-- [ ] Import/export functionality
-- [ ] Learning statistics dashboard
-- [ ] Cloud deployment option
+## AI Features (Optional)
 
-## 🤝 Contributing
+The AI features are optional enhancements that require an Anthropic API key. They implement concepts from recent research in agentic AI:
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+- **ReAct Framework** (Yao et al., ICLR 2023): Reasoning-action cycles for vocabulary analysis
+- **LATS Architecture** (Zhou et al., ICML 2024): Hierarchical learning difficulty diagnosis
+- **Multi-Agent Refinement** (Yuksel et al., REALM 2025): Translation quality evaluation
+- **Semantic Analysis**: Related word recommendations without requiring user history
+
+These features are designed to work well even with small datasets, making them suitable for language learners at any stage.
+
+For implementation details and usage, see [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
+
+---
+
+## Roadmap
+
+Planned features:
+- Review mode with spaced repetition algorithms
+- Combat stats calculation (ATK/DEF/RES/SPD) based on learning patterns
+- Multiple source language support (beyond Chinese)
+- Import/export functionality
+- Enhanced learning statistics dashboard
+- Deployment guides for cloud hosting
+
+---
+
+## Contributing
+
+Contributions are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ### Development Setup
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch: `git checkout -b feature/YourFeature`
+3. Make your changes with clear commit messages
+4. Push to your branch: `git push origin feature/YourFeature`
 5. Open a Pull Request
 
-## 📜 License
-
-This project uses a **dual licensing** approach:
-
-### Source Code: AGPL-3.0
-
-The source code (all `.py` files) is licensed under the **GNU Affero General Public License v3.0**.
-
-**What this means:**
-- ✅ Free for personal use, learning, and modification
-- ✅ You can use it commercially **if you open-source your modifications**
-- ✅ Any web service using this code must provide source code to users
-- ✅ You can contribute improvements back to the project
-
-See the [LICENSE](LICENSE) file for full details.
-
-### Documentation: CC BY 4.0
-
-All documentation (including this README, guides, inline comments, and other text files) is licensed under **Creative Commons Attribution 4.0 International (CC BY 4.0)**.
-
-**What this means:**
-- ✅ You can freely use, modify, and share the documentation
-- ✅ You can use it commercially without restrictions
-- ✅ You just need to give appropriate credit
-- ✅ You can adapt it for your own projects
-
-See the [LICENSE-DOCS](LICENSE-DOCS) file for full details.
+Please maintain code quality and add tests where appropriate.
 
 ---
 
-For questions about licensing, please contact: [okmijnqazwsx69@gmail.com]
+## License
 
-## 🙏 Acknowledgments
+This project uses dual licensing:
 
-- Built with [Streamlit](https://streamlit.io/)
-- Translation powered by [DeepL API](https://www.deepl.com/docs-api) and [deep-translator](https://github.com/nidhaloff/deep-translator)
-- Motivated by the creator's need of learning languages through fun text
-- Fascilitated by the creator's friend(s) during development
-- Name inspired by the "archive of our own" spirit - this is the users' own textbook, for learning languages the way they love.
+### Source Code: AGPL-3.0
 
-## 📧 Contact
+All `.py` files are licensed under the GNU Affero General Public License v3.0. This means:
+- Free for personal use, learning, and modification
+- Commercial use is allowed if modifications are open-sourced
+- Web services using this code must provide source code to users
 
-- Developed by: xswzaqnjimko
+See [LICENSE](LICENSE) for details.
+
+### Documentation: CC BY 4.0
+
+Documentation (README, guides, comments) is licensed under Creative Commons Attribution 4.0 International. This means:
+- Free to use, modify, and share
+- Commercial use allowed without restrictions
+- Attribution required
+
+See [LICENSE-DOCS](LICENSE-DOCS) for details.
+
+For licensing questions: okmijnqazwsx69@gmail.com
+
+---
+
+## Acknowledgments
+
+Built with:
+- [Streamlit](https://streamlit.io/) for the web interface
+- [DeepL API](https://www.deepl.com/docs-api) and [deep-translator](https://github.com/nidhaloff/deep-translator) for translations
+- [Anthropic Claude API](https://www.anthropic.com/) for AI features
+
+Motivated by the creator's need of learning languages through fun text.
+Facilitated by the creator's friend(s) during development.
+Name inspired by the "archive of our own" spirit - this is the users' own textbook, for learning languages the way they love.
+
+---
+
+## Contact
+
+- Developer: xswzaqnjimko
 - GitHub: [@xswzaqnjimko](https://github.com/xswzaqnjimko)
 - Email: okmijnqazwsx69@gmail.com
 
 ---
 
-**Note**: This tool was originally designed for learning from AO3 fanfiction archives but can be adapted for any HTML-based text library. The relationship filtering feature can be disabled if not needed.
+**Note**: This tool was originally designed for learning from AO3 fanfiction but can be adapted for any HTML-based text library. Features like relationship filtering and AO3-specific can be disabled if not needed.
