@@ -206,8 +206,6 @@ The AI features are optional enhancements that require an Anthropic API key. The
 
 These features are designed to work well even with small datasets, making them suitable for language learners at any stage.
 
-For implementation details and usage, see [docs/AI_FEATURES.md](docs/AI_FEATURES.md).
-
 ---
 
 ## Roadmap
