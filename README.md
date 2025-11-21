@@ -159,6 +159,8 @@ streamlit run main.py
 ├── i18n.py                      # Internationalization support
 ├── vocabulary.db                # Database (auto-generated)
 ├── requirements.txt             # Python dependencies
+├── docs/                        # in-case-useful
+│   └── API_DESIGN.md            # API architecture (conceptual)
 ├── config.json                  # API keys (not in git, see config_example.json)
 ├── .gitignore                   # Git ignore rules
 ├── library/                     # Your HTML text files (not in git)
