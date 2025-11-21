@@ -217,6 +217,7 @@ Planned features:
 - Import/export functionality
 - Enhanced learning statistics dashboard
 - Deployment guides for cloud hosting
+- and more :D
 
 ---
 
