@@ -2,7 +2,7 @@
 
 A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking.
 
-This project was born from the need to learn languages through fanfiction and other engaging content, rather than textbooks. It now includes AI-powered features for semantic analysis and learning optimization.
+This project was born from the need to learn languages through fanfiction and other engaging content, rather than textbooks. Updating.
 
 ---
 
@@ -44,7 +44,7 @@ This project was born from the need to learn languages through fanfiction and ot
 - Breakthrough system: return words to active study when needed
 - Progress tracking and statistics
 
-### AI-Powered Features (New)
+### AI-Powered Features
 
 **Agentic AI Enhancements**
 - ReAct-style vocabulary analysis: automatically suggests parent-child word relationships
@@ -53,12 +53,11 @@ This project was born from the need to learn languages through fanfiction and ot
 - Smart review suggestions based on learning patterns
 - Semantic-based related word recommendations (ideal for small datasets)
 
-**Internationalization**
+### Internationalization
 - UI language switching (Chinese/English)
 - Easy to extend to additional languages
 - Centralized translation management
 
-For details on AI features, see [AI_FEATURES.md](AI_FEATURES.md).
 
 ---
 
@@ -214,7 +213,7 @@ For implementation details and usage, see [docs/AI_FEATURES.md](docs/AI_FEATURES
 ## Roadmap
 
 Planned features:
-- Review mode with spaced repetition algorithms
+- Review mode update with spaced repetition algorithms
 - Combat stats calculation (ATK/DEF/RES/SPD) based on learning patterns
 - Multiple source language support (beyond Chinese)
 - Import/export functionality
