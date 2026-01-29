@@ -7,8 +7,8 @@ This project was born from the need to learn languages through fanfiction and ot
 ---
 
 **Licenses:**
-- Code: [AGPL-3.0](LICENSE) - Ensures modifications stay open source
-- Documentation: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) - Free to share and adapt with attribution
+- Code: [AGPL-3.0](LICENSE)
+- Documentation: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ---
 
@@ -16,7 +16,7 @@ This project was born from the need to learn languages through fanfiction and ot
 
 ### Core Functionality
 
-**Smart Sentence Extraction**
+**Sentence Extraction**
 - Random sentence selection from your local HTML library
 - Optional filtering by specific topics (originally designed for AO3 fanfiction)
 - Customizable content source
@@ -27,8 +27,8 @@ This project was born from the need to learn languages through fanfiction and ot
 - Side-by-side comparison mode for quality assessment
 - Direct links to online dictionaries and text-to-speech
 
-**Intelligent Vocabulary Notebook**
-- Automatic detection and consolidation of word variations
+**Vocabulary Notebook**
+- Linking word variations
 - Rich context storage: up to 128 encounters per word
 - Stores original sentences, translations (both engines), and source metadata
 - Parent-child word relationships for learning word families
@@ -44,21 +44,6 @@ This project was born from the need to learn languages through fanfiction and ot
 - Breakthrough system: return words to active study when needed
 - Progress tracking and statistics
 
-### AI-Powered Features
-
-**Agentic AI Enhancements**
-- ReAct-style vocabulary analysis: automatically suggests parent-child word relationships
-- Hierarchical learning difficulty diagnosis using LATS-inspired architecture
-- Multi-agent translation quality evaluation
-- Smart review suggestions based on learning patterns
-- Semantic-based related word recommendations (ideal for small datasets)
-
-### Internationalization
-- UI language switching (Chinese/English)
-- Easy to extend to additional languages
-- Centralized translation management
-
-
 ---
 
 ## Installation
@@ -66,22 +51,15 @@ This project was born from the need to learn languages through fanfiction and ot
 ### Prerequisites
 - Python 3.8 or higher
 - DeepL API key (free tier: 500,000 characters/month)
-- Optional: Anthropic API key for AI features (free tier: $5 credit)
 
 ### Setup
 
-1. Clone the repository
-```bash
-git clone https://github.com/xswzaqnjimko/lingo-text-of-own.git
-cd lingo-text-of-own
-```
-
-2. Install dependencies
+1. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Configure API keys
+2. Configure API keys
 
 Choose one of the following methods:
 
@@ -103,7 +81,7 @@ Create a `config.json` file (not tracked by git):
 
 See `config_example.json` for a template.
 
-4. Prepare your text library
+3. Prepare your text library
 
 Place your HTML files in a directory (e.g., `library/`). The app currently expects Chinese source text with plans to support more languages. Update the `LOCAL_DIR` path in the code if needed.
 
@@ -133,19 +111,17 @@ streamlit run main.py
 3. **Build Your Vocabulary**:
    - Add unknown words/phrases to your notebook
    - System automatically tracks context and metadata
-   - Use AI features to analyze word relationships
 
 4. **Review and Manage**:
    - Navigate to Vocabulary Notebook to see all saved words
    - Use "Seems familiar" / "Don't know well" buttons to track learning
    - View detailed encounter history for each word
    - Add personal notes and set parent-child relationships
-   - Get AI-powered recommendations for related words to review
 
 5. **Track Progress**:
    - Check Hall of Fame for mastered vocabulary
    - Use management tools to organize your notebook
-   - View learning statistics and patterns
+   - (To be added:) View learning statistics and patterns
 
 ---
 
@@ -155,13 +131,9 @@ streamlit run main.py
 .
 ├── main.py                      # Main Streamlit application
 ├── vocabulary_db.py             # SQLite database operations
-├── agentic_features.py          # AI agent implementations
 ├── i18n.py                      # Internationalization support
 ├── vocabulary.db                # Database (auto-generated)
 ├── requirements.txt             # Python dependencies
-├── docs/                        # in-case-useful
-│   └── API_DESIGN.md            # API architecture (conceptual)
-├── config.json                  # API keys (not in git, see config_example.json)
 ├── .gitignore                   # Git ignore rules
 ├── library/                     # Your HTML text files (not in git)
 └── LICENSE, LICENSE-DOCS        # License files
@@ -197,45 +169,16 @@ sqlite3 vocabulary.db ".mode csv" ".output vocabulary.csv" "SELECT * FROM vocabu
 
 ---
 
-## AI Features (Optional)
-
-The AI features are optional enhancements that require an Anthropic API key. They implement concepts from recent research in agentic AI:
-
-- **ReAct Framework** (Yao et al., ICLR 2023): Reasoning-action cycles for vocabulary analysis
-- **LATS Architecture** (Zhou et al., ICML 2024): Hierarchical learning difficulty diagnosis
-- **Multi-Agent Refinement** (Yuksel et al., REALM 2025): Translation quality evaluation
-- **Semantic Analysis**: Related word recommendations without requiring user history
-
-These features are designed to work well even with small datasets, making them suitable for language learners at any stage.
-
----
-
 ## Roadmap
 
 Planned features:
 - Review mode update with spaced repetition algorithms
 - Combat stats calculation (ATK/DEF/RES/SPD) based on learning patterns
 - Multiple source language support (beyond Chinese)
-- Import/export functionality
+- Further import/export functionality
 - Enhanced learning statistics dashboard
-- Deployment guides for cloud hosting
+- Distribution plannning...
 - and more :D
-
----
-
-## Contributing
-
-Contributions are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/YourFeature`
-3. Make your changes with clear commit messages
-4. Push to your branch: `git push origin feature/YourFeature`
-5. Open a Pull Request
-
-Please maintain code quality and add tests where appropriate.
 
 ---
 
@@ -245,7 +188,7 @@ This project uses dual licensing:
 
 ### Source Code: AGPL-3.0
 
-All `.py` files are licensed under the GNU Affero General Public License v3.0. This means:
+All `.py` files are licensed under the GNU Affero General Public License v3.0:
 - Free for personal use, learning, and modification
 - Commercial use is allowed if modifications are open-sourced
 - Web services using this code must provide source code to users
@@ -254,7 +197,7 @@ See [LICENSE](LICENSE) for details.
 
 ### Documentation: CC BY 4.0
 
-Documentation (README, guides, comments) is licensed under Creative Commons Attribution 4.0 International. This means:
+Documentation (README, guides, comments) is licensed under Creative Commons Attribution 4.0 International:
 - Free to use, modify, and share
 - Commercial use allowed without restrictions
 - Attribution required
@@ -270,7 +213,6 @@ For licensing questions: okmijnqazwsx69@gmail.com
 Built with:
 - [Streamlit](https://streamlit.io/) for the web interface
 - [DeepL API](https://www.deepl.com/docs-api) and [deep-translator](https://github.com/nidhaloff/deep-translator) for translations
-- [Anthropic Claude API](https://www.anthropic.com/) for AI features
 
 Motivated by the creator's need of learning languages through fun text.
 Facilitated by the creator's friend(s) during development.
@@ -283,7 +225,3 @@ Name inspired by the "archive of our own" spirit - this is the users' own textbo
 - Developer: xswzaqnjimko
 - GitHub: [@xswzaqnjimko](https://github.com/xswzaqnjimko)
 - Email: okmijnqazwsx69@gmail.com
-
----
-
-**Note**: This tool was originally designed for learning from AO3 fanfiction but can be adapted for any HTML-based text library. Features like relationship filtering and AO3-specific can be disabled if not needed.
