@@ -218,10 +218,3 @@ Motivated by the creator's need of learning languages through fun text.
 Facilitated by the creator's friend(s) during development.
 Name inspired by the "archive of our own" spirit - this is the users' own textbook, for learning languages the way they love.
 
----
-
-## Contact
-
-- Developer: xswzaqnjimko
-- GitHub: [@xswzaqnjimko](https://github.com/xswzaqnjimko)
-- Email: okmijnqazwsx69@gmail.com
