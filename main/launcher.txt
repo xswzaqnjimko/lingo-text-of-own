@@ -1,6 +1,6 @@
 PROJECT_ROOT="/your/directory/to/version/main"
 cd "$PROJECT_ROOT"
-PYTHON="$PROJECT_ROOT/.venv/bin/python3.11"
+PYTHON="$PROJECT_ROOT/.venv/bin/python3"
 
 export DEEPL_API_KEY="your_API_key"
 
