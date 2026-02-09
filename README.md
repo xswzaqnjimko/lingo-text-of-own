@@ -1,14 +1,34 @@
 # lingo-text-of-own: Language Learning from User-Defined Literature Library
 
-A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking.
-
-This project was born from the need to learn languages through fanfiction and other engaging content, rather than textbooks. Updating.
+A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking. Still updating.
 
 ---
 
-**Licenses:**
-- Code: [AGPL-3.0](LICENSE)
-- Documentation: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+## Project Structure
+```
+lingo-text-of-own/
+└── v1.1/
+    └── main/
+        ├── launcher.txt                 # Commands for launching
+        ├── scripts/
+        │   ├── main.py                  # Main Streamlit application
+        │   ├── vocabulary_db.py         # SQLite database operations
+        │   ├── ao3_collect_urls.py      # AO3 URL collection
+        │   ├── ao3_download.py          # FanFicFare batch downloader
+        │   └── dependencies/
+        │       ├── __init__.py
+        │       ├── config.py            # Centralized paths, API keys, settings
+        │       ├── ao3_parser.py        # HTML parsing & CP matching
+        │       ├── translation.py       # DeepL, Google, dictionary links
+        │       ├── ui_components.py     # Streamlit display functions
+        │       └── i18n.py              # Internationalization (WIP)
+        └── data/
+            ├── library/ao3/
+            │   ├── ao3_downloads/       # Downloaded HTML files
+            │   └── urls_all.txt         # Collected work URLs for download
+            └── vocabulary_notebook/
+                └── vocabulary.db        # SQLite database (auto-generated)
+```
 
 ---
 
@@ -28,20 +48,13 @@ This project was born from the need to learn languages through fanfiction and ot
 - Direct links to online dictionaries and text-to-speech
 
 **Vocabulary Notebook**
-- Linking word variations
-- Rich context storage: up to 128 encounters per word
-- Stores original sentences, translations (both engines), and source metadata
+- Rich context storage: up to 128 encounters per word with original sentences, translations, and source metadata
 - Parent-child word relationships for learning word families
 - Personal notes for custom annotations
 
 **Gamified Learning System**
-- HP (Health Points) tracking system
-  - Start with HP = 3
-  - "Don't know well" increases HP (+2)
-  - "Seems familiar" decreases HP (-1)
-  - HP = 0 promotes word to Hall of Fame
-- Hall of Fame for mastered vocabulary
-- Breakthrough system: return words to active study when needed
+- HP tracking: starts at 3, "Seems familiar" (-1), "Don't know well" (+2), HP=0 → Hall of Fame
+- Breakthrough system: return mastered words to active study when needed
 - Progress tracking and statistics
 
 ---
@@ -49,41 +62,26 @@ This project was born from the need to learn languages through fanfiction and ot
 ## Installation
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.8+
 - DeepL API key (free tier: 500,000 characters/month)
+- [FanFicFare](https://github.com/JimmXinu/FanFicFare) (for AO3 downloads)
 
 ### Setup
 
-1. Install dependencies
 ```bash
+# 1. Install dependencies
 pip install -r requirements.txt
+pip install FanFicFare  # for ao3_download.py
+
+# 2. Configure
+#    Edit scripts/dependencies/config.py:
+#    - DEEPL_API_KEY (or set env var DEEPL_API_KEY, or set in launcher.txt)
+#    - DEFAULT_AO3_USER_URL (your AO3 user page)
+#    - TARGET_RELAS (your preferred relationships/tags)
+
+# 3. Place HTML files in data/library/ao3/ao3_downloads/
+#    Or use the built-in scripts to collect & download (see below)
 ```
-
-2. Configure API keys
-
-Choose one of the following methods:
-
-**Option A: Environment Variables (Recommended)**
-```bash
-export DEEPL_API_KEY="your-deepl-key"
-export ANTHROPIC_API_KEY="your-anthropic-key"  # optional, for AI features
-```
-
-**Option B: Configuration File**
-
-Create a `config.json` file (not tracked by git):
-```json
-{
-  "deepl_api_key": "your-deepl-key",
-  "anthropic_api_key": "your-anthropic-key"
-}
-```
-
-See `config_example.json` for a template.
-
-3. Prepare your text library
-
-Place your HTML files in a directory (e.g., `library/`). The app currently expects Chinese source text with plans to support more languages. Update the `LOCAL_DIR` path in the code if needed.
 
 ---
 
@@ -91,130 +89,77 @@ Place your HTML files in a directory (e.g., `library/`). The app currently expec
 
 ### Launch the App
 
+From `v1.1/main/`:
 ```bash
-streamlit run main.py
+streamlit run scripts/main.py
+```
+Or copy (and edit) the commands in `launcher.txt` into an Automator app for double-click launch.
+
+### Build Your Library (Optional — AO3)
+
+Both scripts are PyCharm-runnable with zero arguments (defaults from `config.py`):
+
+```bash
+# Collect work URLs from your AO3 page (auto-resumes on failure, auto-retries up to 5x)
+python scripts/ao3_collect_urls.py
+
+# Download all works as HTML (handles adult content, auto-retries failed URLs)
+python scripts/ao3_download.py
 ```
 
-### Basic Workflow
+### Learning Workflow
 
-1. **Configure Settings** (Sidebar):
-   - Select target language(s)
-   - Choose UI language (Chinese/English)
-   - Enable/disable translation comparison mode
-   - Toggle AO3-specific features if applicable
-
-2. **Extract and Translate**:
-   - Click to draw a random sentence from your library
-   - View translations in English and your target language(s)
-   - Access pronunciation via Google Translate or DeepL links
-
-3. **Build Your Vocabulary**:
-   - Add unknown words/phrases to your notebook
-   - System automatically tracks context and metadata
-
-4. **Review and Manage**:
-   - Navigate to Vocabulary Notebook to see all saved words
-   - Use "Seems familiar" / "Don't know well" buttons to track learning
-   - View detailed encounter history for each word
-   - Add personal notes and set parent-child relationships
-
-5. **Track Progress**:
-   - Check Hall of Fame for mastered vocabulary
-   - Use management tools to organize your notebook
-   - (To be added:) View learning statistics and patterns
-
----
-
-## Project Structure
-
-```
-.
-├── main.py                      # Main Streamlit application
-├── vocabulary_db.py             # SQLite database operations
-├── i18n.py                      # Internationalization support
-├── vocabulary.db                # Database (auto-generated)
-├── requirements.txt             # Python dependencies
-├── .gitignore                   # Git ignore rules
-├── library/                     # Your HTML text files (not in git)
-└── LICENSE, LICENSE-DOCS        # License files
-```
+1. **Sidebar** — select target language(s), toggle comparison mode, configure filters
+2. **Draw a sentence** — random extraction from your library with multi-engine translation
+3. **Add words** — unknown words go to your vocabulary notebook with full context
+4. **Review** — "Seems familiar" / "Don't know well" to track learning via HP system
+5. **Hall of Fame** — mastered words (HP=0) graduate; bring them back if needed
 
 ---
 
 ## Configuration
 
-### Supported Languages
+All settings live in `scripts/dependencies/config.py`:
 
-Currently supports Spanish, French, and Italian as target languages. To add more languages, update the `SUPPORTED_LANGUAGES` dictionary in `main.py`. See the code comments for details.
+| Setting | What it does |
+|---|---|
+| `DEEPL_API_KEY` | DeepL API key (free tier works); or set in launcher.txt |
+| `DEFAULT_LANG` | Default target language (`'es'`, `'fr'`, `'it'`) |
+| `TARGET_RELAS` | AO3 relationship tags to filter by (Optional) |
+| `SUPPORTED_LANGUAGES` | Add new target languages here |
+| `LANGUAGE_DICTIONARIES` | External dictionary URLs per language |
+| `DEFAULT_AO3_USER_URL` | Your AO3 works page URL (Optional, for AO3 library download) |
 
-### Database Schema
+### Database
 
-- `vocabulary`: Core vocabulary table with HP and stats
-- `encounters`: Detailed encounter history (up to 128 per word)
-- `hall_of_fame`: Mastered vocabulary archive
-- `hp_history`: HP change tracking for learning analysis (optional, for AI features)
-- `metadata`: System configuration
-
-### Data Management
-
-Backup your database regularly:
+Auto-generated at `data/vocabulary_notebook/vocabulary.db`. Back up regularly:
 ```bash
 cp vocabulary.db vocabulary_backup_$(date +%Y%m%d).db
-```
-
-Export to CSV:
-```bash
-sqlite3 vocabulary.db ".mode csv" ".output vocabulary.csv" "SELECT * FROM vocabulary;"
 ```
 
 ---
 
 ## Roadmap
 
-Planned features:
-- Review mode update with spaced repetition algorithms
-- Combat stats calculation (ATK/DEF/RES/SPD) based on learning patterns
+- Spaced repetition review mode
+- Combat stats (ATK/DEF/RES/SPD) based on learning patterns
 - Multiple source language support (beyond Chinese)
-- Further import/export functionality
-- Enhanced learning statistics dashboard
-- Distribution plannning...
+- i18n for UI
+- Import/export functionality
+- Learning statistics dashboard
+- Distribution planning
 - and more :D
 
 ---
 
-## License
-
-This project uses dual licensing:
-
-### Source Code: AGPL-3.0
-
-All `.py` files are licensed under the GNU Affero General Public License v3.0:
-- Free for personal use, learning, and modification
-- Commercial use is allowed if modifications are open-sourced
-- Web services using this code must provide source code to users
-
-See [LICENSE](LICENSE) for details.
-
-### Documentation: CC BY 4.0
-
-Documentation (README, guides, comments) is licensed under Creative Commons Attribution 4.0 International:
-- Free to use, modify, and share
-- Commercial use allowed without restrictions
-- Attribution required
-
-See [LICENSE-DOCS](LICENSE-DOCS) for details.
-
-For licensing questions: okmijnqazwsx69@gmail.com
+**Licenses:**
+- Code: [AGPL-3.0](LICENSE)
+- Documentation: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ---
 
 ## Acknowledgments
 
-Built with:
-- [Streamlit](https://streamlit.io/) for the web interface
-- [DeepL API](https://www.deepl.com/docs-api) and [deep-translator](https://github.com/nidhaloff/deep-translator) for translations
+Built with [Streamlit](https://streamlit.io/), [DeepL API](https://www.deepl.com/docs-api), [deep-translator](https://github.com/nidhaloff/deep-translator), and [FanFicFare](https://github.com/JimmXinu/FanFicFare).
 
-Motivated by the creator's need of learning languages through fun text.
-Facilitated by the creator's friend(s) during development.
-Name inspired by the "archive of our own" spirit - this is the users' own textbook, for learning languages the way they love.
-
+Motivated by the creator's need of learning languages through fun text. Facilitated by the creator's friend(s) during development. Name inspired by the "archive of our own" spirit — this is the users' own textbook, for learning languages the way they love.

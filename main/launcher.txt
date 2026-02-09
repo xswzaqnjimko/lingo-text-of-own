@@ -1,0 +1,12 @@
+PROJECT_ROOT="/your/directory/to/version/main"
+cd "$PROJECT_ROOT"
+PYTHON="$PROJECT_ROOT/.venv/bin/python3.11"
+
+export DEEPL_API_KEY="your_API_key"
+
+pkill -f "streamlit run scripts/main.py" || true
+sleep 1
+
+"$PYTHON" -m streamlit run "scripts/main.py"
+
+pkill -f "streamlit run scripts/main.py"

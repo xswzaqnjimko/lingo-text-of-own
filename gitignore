@@ -1,64 +1,47 @@
-# Python
+# === Python ===
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+*.pyo
 *.egg-info/
-.installed.cfg
+dist/
+build/
 *.egg
 
-# Streamlit
-.streamlit/
+# === Virtual environments ===
+.venv/
+venv/
+env/
 
-# Database
-vocabulary.db
-*.db
-*.sqlite
-*.sqlite3
-
-# Personal configuration
-config.json
-
-# Local text library (user's own content)
-library/
-ao3_downloads/
-*.html
-
-# API keys
-.env
-*.pem
-*.key
-
-# IDE
-.vscode/
+# === IDE ===
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
-.DS_Store
 
-# Logs
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Secrets & config ===
+config.json
+*.env
+
+# === Data files (user-specific, large) ===
+data/library/ao3/ao3_downloads/
+data/vocabulary_notebook/vocabulary.db
+data/vocabulary_notebook/*.db-journal
+
+# === URL collection progress files ===
+data/library/ao3/.urls_all_progress.json
+
+# === Keep the directory structure with .gitkeep ===
+!data/library/ao3/ao3_downloads/.gitkeep
+!data/vocabulary_notebook/.gitkeep
+
+# === Logs ===
 *.log
 
-# Backup files
-*_backup_*
-*.bak
+# === Automator app (contains local paths & API keys) ===
+*.app
 
-# OS
-Thumbs.db
