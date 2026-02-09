@@ -48,7 +48,7 @@ lingo-text-of-own/
 - Direct links to online dictionaries and text-to-speech
 
 **Vocabulary Notebook**
-- Rich context storage: up to 128 encounters per word with original sentences, translations, and source metadata
+- Rich context storage: up to 128 encounters per word (easily extensible) with original sentences, translations, and source metadata
 - Parent-child word relationships for learning word families
 - Personal notes for custom annotations
 
