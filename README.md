@@ -1,6 +1,6 @@
 # lingo-text-of-own: Language Learning from User-Defined Literature Library
 
-A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking. Currently mainly for AO3 work library. Still updating.
+A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking. Still in progress.
 
 ---
 
@@ -13,12 +13,12 @@ lingo-text-of-own/
         ├── scripts/
         │   ├── main.py                  # Main Streamlit application
         │   ├── vocabulary_db.py         # SQLite database operations
-        │   ├── ao3_collect_urls.py      # AO3 URL collection
-        │   ├── ao3_download.py          # FanFicFare batch downloader
+        │   ├── ao3_collect_urls.py      # URL collection
+        │   ├── ao3_download.py          # Batch downloader
         │   └── dependencies/
         │       ├── __init__.py
         │       ├── config.py            # Centralized paths, API keys, settings
-        │       ├── ao3_parser.py        # HTML parsing & CP matching
+        │       ├── ao3_parser.py        # HTML parsing & keyword matching
         │       ├── translation.py       # DeepL, Google, dictionary links
         │       ├── ui_components.py     # Streamlit display functions
         │       └── i18n.py              # Internationalization (WIP)
@@ -38,17 +38,17 @@ lingo-text-of-own/
 
 **Sentence Extraction**
 - Random sentence selection from your local HTML library
-- Optional filtering by specific topics (originally designed for AO3 fanfiction)
+- Optional filtering by keywords
 - Customizable content source
 
 **Multi-Language Translation**
-- Currently supports: Spanish, French, Italian (easily extensible)
+- Currently supports: Spanish, French, Italian (extensible)
 - Dual translation engines: Google Translate and DeepL API
 - Side-by-side comparison mode for quality assessment
 - Direct links to online dictionaries and text-to-speech
 
 **Vocabulary Notebook**
-- Rich context storage: up to 128 encounters per word (easily extensible) with original sentences, translations, and source metadata
+- Rich context storage: up to 128 encounters per word (extensible) including original sentences, translations, and source metadata
 - Parent-child word relationships for learning word families
 - Personal notes for custom annotations
 
@@ -64,22 +64,19 @@ lingo-text-of-own/
 ### Prerequisites
 - Python 3.8+
 - DeepL API key (free tier: 500,000 characters/month)
-- [FanFicFare](https://github.com/JimmXinu/FanFicFare) (for AO3 downloads)
+- [FanFicFare](https://github.com/JimmXinu/FanFicFare) (for template html downloads)
 
 ### Setup
 
 ```bash
 # 1. Install dependencies
 pip install -r requirements.txt
-pip install FanFicFare  # for ao3_download.py
+pip install FanFicFare
 
 # 2. Configure
-#    Edit scripts/dependencies/config.py:
-#    - DEEPL_API_KEY (or set env var DEEPL_API_KEY, or set in launcher.txt)
-#    - DEFAULT_AO3_USER_URL (your AO3 user page)
-#    - TARGET_RELAS (your preferred relationships/tags)
+#    Edit scripts/dependencies/config.py, or directly edit in launcher.txt for fast deployment
 
-# 3. Place HTML files in data/library/ao3/ao3_downloads/
+# 3. Place HTML files in data/library/library_group
 #    Or use the built-in scripts to collect & download (see below)
 ```
 
@@ -95,15 +92,15 @@ streamlit run scripts/main.py
 ```
 Or copy (and edit) the commands in `launcher.txt` into an Automator app for double-click launch.
 
-### Build Your Library (Optional — AO3)
+### Build Your Library
 
 Both scripts are PyCharm-runnable with zero arguments (defaults from `config.py`):
 
 ```bash
-# Collect work URLs from your AO3 page (auto-resumes on failure, auto-retries up to 5x)
+# Collect work URLs (auto-resumes on failure, auto-retries up to 5x)
 python scripts/ao3_collect_urls.py
 
-# Download all works as HTML (handles adult content, auto-retries failed URLs)
+# Download all works as HTML (auto-retries on failure)
 python scripts/ao3_download.py
 ```
 
@@ -123,31 +120,27 @@ All settings live in `scripts/dependencies/config.py`:
 
 | Setting | What it does |
 |---|---|
-| `DEEPL_API_KEY` | DeepL API key (free tier works); or set in launcher.txt |
+| `DEEPL_API_KEY` | DeepL API key; or set in launcher.txt |
 | `DEFAULT_LANG` | Default target language (`'es'`, `'fr'`, `'it'`) |
-| `TARGET_RELAS` | AO3 relationship tags to filter by (Optional) |
 | `SUPPORTED_LANGUAGES` | Add new target languages here |
 | `LANGUAGE_DICTIONARIES` | External dictionary URLs per language |
-| `DEFAULT_AO3_USER_URL` | Your AO3 works page URL (Optional, for AO3 library download) |
 
 ### Database
 
-Auto-generated at `data/vocabulary_notebook/vocabulary.db`. Back up regularly:
+Auto-generated at `data/vocabulary_notebook/vocabulary.db`. Back up using:
 ```bash
 cp vocabulary.db vocabulary_backup_$(date +%Y%m%d).db
 ```
 
 ---
 
-## Roadmap
+## To-do
 
 - Spaced repetition review mode
-- Combat stats (ATK/DEF/RES/SPD) based on learning patterns
-- Multiple source language support (beyond Chinese)
-- i18n for UI
+- Multiple source language support (English first)
+- i18n for English & other language UI
+- Stats based on learning patterns & dashboard
 - Import/export functionality
-- Learning statistics dashboard
-- Distribution planning
 - and more :D
 
 ---
@@ -160,6 +153,6 @@ cp vocabulary.db vocabulary_backup_$(date +%Y%m%d).db
 
 ## Acknowledgments
 
-Built with [Streamlit](https://streamlit.io/), [DeepL API](https://www.deepl.com/docs-api), [deep-translator](https://github.com/nidhaloff/deep-translator), and [FanFicFare](https://github.com/JimmXinu/FanFicFare).
+Built with [Streamlit](https://streamlit.io/), [DeepL API](https://www.deepl.com/docs-api), [deep-translator](https://github.com/nidhaloff/deep-translator), and [FanFicFare](https://github.com/JimmXinu/FanFicFare). Thanks to creator's personalized needs & interests, friends & families, techs, chats, chazuke & sashimi.
 
-Motivated by the creator's need of learning languages through fun text. Facilitated by the creator's friend(s) during development. Name inspired by the "archive of our own" spirit — this is the users' own textbook, for learning languages the way they love.
+
