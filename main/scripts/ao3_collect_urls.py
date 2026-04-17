@@ -2,6 +2,7 @@
 """
 AO3 作品链接收集脚本（增强版）
 支持断点续传、自动重试、进度保存
+方便起见，使用时可临时设置所有作品游客可见
 
 """
 
@@ -17,6 +18,35 @@ import requests
 from bs4 import BeautifulSoup
 
 from dependencies.config import DEFAULT_AO3_USER_URL, URLS_ALL_FILE, COLLECT_MAX_AUTO_RETRIES, COLLECT_RETRY_WAIT_SECONDS
+
+from collections import OrderedDict
+
+class TimingLogger:
+    def __init__(self):
+        self.timings = OrderedDict()
+        self._starts = {}
+        self._total = None
+    def start_total(self):
+        self._total = time.time()
+    def start(self, name):
+        self._starts[name] = time.time()
+    def stop(self, name):
+        if name in self._starts:
+            self.timings[name] = time.time() - self._starts[name]
+    def get_total(self):
+        return time.time() - self._total if self._total else 0
+    def fmt(self, d):
+        return f"{int(d//60)}m {d%60:.1f}s" if d >= 60 else f"{d:.1f}s"
+    def print_summary(self):
+        print("\n" + "=" * 50, file=sys.stderr)
+        print("⏱️  TIMING SUMMARY", file=sys.stderr)
+        print("=" * 50, file=sys.stderr)
+        for step, dur in self.timings.items():
+            print(f"  {step:<35} {self.fmt(dur):>12}", file=sys.stderr)
+        print("-" * 50, file=sys.stderr)
+        print(f"  {'TOTAL':<35} {self.fmt(self.get_total()):>12}", file=sys.stderr)
+
+
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
@@ -211,41 +241,53 @@ def scrape_once(args, outfile, progress_file):
 
 
 def main():
-    _start = datetime.now() # Timer just for fun...
+    timer = TimingLogger()
+    timer.start_total()
+    try:
+        ap = argparse.ArgumentParser(description="收集 AO3 作者作品链接（支持断点续传 & 自动重试）")
+        ap.add_argument("--url", default=DEFAULT_AO3_USER_URL,
+                        help="作者作品页，例如 https://archiveofourown.org/users/<n>/works （方便起见，可临时设置所有作品游客可见）")
+        ap.add_argument("--outfile", default=str(URLS_ALL_FILE), help="输出文件路径，例如 urls_all.txt")
+        ap.add_argument("--sleep", type=float, default=3.0, help="页面间隔秒数（默认3秒）")
+        ap.add_argument("--timeout", type=float, default=30, help="HTTP超时秒数（默认30秒）")
+        ap.add_argument("--max-pages", type=int, default=0, help="可选：限制最大页数（0=自动检测）")
+        ap.add_argument("--fresh", action="store_true", help="忽略进度文件，从头开始（默认自动 resume）")
+        args = ap.parse_args()
 
-    ap = argparse.ArgumentParser(description="收集 AO3 作者作品链接（支持断点续传 & 自动重试）")
-    ap.add_argument("--url", default=DEFAULT_AO3_USER_URL, help="作者作品页，例如 https://archiveofourown.org/users/<n>/works")
-    ap.add_argument("--outfile", default=str(URLS_ALL_FILE), help="输出文件路径，例如 urls_all.txt")
-    ap.add_argument("--sleep", type=float, default=3.0, help="页面间隔秒数（默认3秒）")
-    ap.add_argument("--timeout", type=float, default=30, help="HTTP超时秒数（默认30秒）")
-    ap.add_argument("--max-pages", type=int, default=0, help="可选：限制最大页数（0=自动检测）")
-    ap.add_argument("--fresh", action="store_true", help="忽略进度文件，从头开始（默认自动 resume）")
-    args = ap.parse_args()
+        outfile = Path(args.outfile)
+        progress_file = outfile.parent / f".{outfile.stem}_progress.json"
 
-    outfile = Path(args.outfile)
-    progress_file = outfile.parent / f".{outfile.stem}_progress.json"
+        # 自动重试循环：失败后等一会儿自动 resume，最多 N 轮
+        for attempt in range(COLLECT_MAX_AUTO_RETRIES):
+            timer.start(f"Attempt {attempt + 1}: scrape")
+            success = scrape_once(args, outfile, progress_file)
+            timer.stop(f"Attempt {attempt + 1}: scrape")
 
-    # 自动重试循环：失败后等一会儿自动 resume，最多 N 轮
-    for attempt in range(COLLECT_MAX_AUTO_RETRIES):
-        success = scrape_once(args, outfile, progress_file)
-        if success:
-            sys.exit(0)
+            if success:
+                timer.print_summary()
+                sys.exit(0)
 
-        remaining = COLLECT_MAX_AUTO_RETRIES - attempt - 1
-        if remaining > 0:
-            # 失败后下一轮自动 resume（不管 --fresh 与否，重试时一定 resume）
-            args.fresh = False
-            print(f"", file=sys.stderr)
-            print(f"⏳ 第 {attempt + 1} 轮失败，{COLLECT_RETRY_WAIT_SECONDS}秒后自动重试（剩余 {remaining} 次）...", file=sys.stderr)
-            time.sleep(COLLECT_RETRY_WAIT_SECONDS)
-        else:
-            print(f"", file=sys.stderr)
-            print(f"❌ 已达最大重试次数 ({COLLECT_MAX_AUTO_RETRIES})，放弃。", file=sys.stderr)
-            print(f"💾 进度已保存，下次运行会自动 resume。", file=sys.stderr)
-            sys.exit(1)
-
-    print(f"⏱️ 本次耗时: {datetime.now() - _start}", file=sys.stderr)
-
+            remaining = COLLECT_MAX_AUTO_RETRIES - attempt - 1
+            if remaining > 0:
+                # 失败后下一轮自动 resume（不管 --fresh 与否，重试时一定 resume）
+                args.fresh = False
+                print(f"", file=sys.stderr)
+                print(f"⏳ 第 {attempt + 1} 轮失败，{COLLECT_RETRY_WAIT_SECONDS}秒后自动重试（剩余 {remaining} 次）...",
+                      file=sys.stderr)
+                timer.start(f"Attempt {attempt + 1}: retry wait")
+                time.sleep(COLLECT_RETRY_WAIT_SECONDS)
+                timer.stop(f"Attempt {attempt + 1}: retry wait")
+            else:
+                print(f"", file=sys.stderr)
+                print(f"❌ 已达最大重试次数 ({COLLECT_MAX_AUTO_RETRIES})，放弃。", file=sys.stderr)
+                print(f"💾 进度已保存，下次运行会自动 resume。", file=sys.stderr)
+                timer.print_summary()
+                sys.exit(1)
+    except SystemExit:
+        raise
+    except Exception:
+        timer.print_summary()
+        raise
 
 if __name__ == "__main__":
     main()
