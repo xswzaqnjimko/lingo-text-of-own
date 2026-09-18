@@ -13,7 +13,7 @@ import json
 # v1.1: 从 dependencies/ 导入模块
 from dependencies.config import (
     DEFAULT_LANG, SUPPORTED_LANGUAGES, LANGUAGE_DICTIONARIES,
-    TARGET_RELAS, TRANSLATORS, AO3_DOWNLOADS_DIR
+    TARGET_RELAS, TRANSLATORS, AO3_LIBRARY_DIR
 )
 from dependencies.ao3_parser import (
     norm_for_match, filter_by_relationship, index_local_corpus_core
@@ -65,37 +65,28 @@ st.title(" 整点腿肉假装学外语ry ")
 # 侧边栏
 
 with st.sidebar:
-    # 三向导航：首页 / 生词本 / 总选
-    st.markdown("### 📚 页面导航")
+    # 页面导航（radio 选择，所有页面通用）
+    VIEW_OPTIONS = {
+        'home': '🍚 首页',
+        'vocabulary': '📖 生词本',
+        'hall_of_fame': '🏖️ 总选名人堂',
+        'activity': '📅 学习记录',
+    }
+    VIEW_KEYS = list(VIEW_OPTIONS.keys())
+    VIEW_LABELS = list(VIEW_OPTIONS.values())
 
-    current_view = st.session_state.get('current_view', 'home')
+    # 读取当前 view，确保有效
+    saved_view = st.session_state.get('current_view', 'home')
+    if saved_view not in VIEW_KEYS:
+        saved_view = 'home'
 
-    if current_view == 'home':
-        # 在首页，显示两个前往按钮
-        if st.button("📖 前往生词本", use_container_width=True, key="nav_to_vocab"):
-            st.session_state['current_view'] = 'vocabulary'
-            st.rerun()
-        if st.button("🏖️ 前往总选名人堂", use_container_width=True, key="nav_to_hof"):
-            st.session_state['current_view'] = 'hall_of_fame'
-            st.rerun()
-
-    elif current_view == 'vocabulary':
-        # 在生词本，可以回首页或去名人堂
-        if st.button("🍚 回到首页", use_container_width=True, key="vocab_to_home"):
-            st.session_state['current_view'] = 'home'
-            st.rerun()
-        if st.button("🏖️ 前往总选名人堂", use_container_width=True, key="vocab_to_hof"):
-            st.session_state['current_view'] = 'hall_of_fame'
-            st.rerun()
-
-    elif current_view == 'hall_of_fame':
-        # 在名人堂，可以回首页或去生词本
-        if st.button("🍚 回到首页", use_container_width=True, key="hof_to_home"):
-            st.session_state['current_view'] = 'home'
-            st.rerun()
-        if st.button("📖 前往生词本", use_container_width=True, key="hof_to_vocab"):
-            st.session_state['current_view'] = 'vocabulary'
-            st.rerun()
+    current_view = st.radio(
+        "📚 页面导航",
+        VIEW_KEYS,
+        format_func=lambda k: VIEW_OPTIONS[k],
+        index=VIEW_KEYS.index(saved_view),
+        key='current_view',
+    )
 
     st.markdown("---")
 
@@ -112,6 +103,25 @@ with st.sidebar:
             st.caption(f"🎤 总选名人堂: {stats['hall_of_fame_count']} 个词")
     except Exception as e:
         st.caption(f"⚠️ 生词本加载失败：{e}")
+
+    # 最近7天活动概览
+    try:
+        summary = vdb.get_activity_summary(7)
+        if summary['active_days'] > 0:
+            st.caption(f"📅 最近7天: 活跃 {summary['active_days']} 天")
+            parts = []
+            if summary['sentences_viewed'] > 0:
+                parts.append(f"{summary['sentences_viewed']}句")
+            if summary['words_added'] > 0:
+                parts.append(f"+{summary['words_added']}词")
+            if summary['words_reviewed'] > 0:
+                parts.append(f"复习{summary['words_reviewed']}次")
+            if summary['words_graduated'] > 0:
+                parts.append(f"出道{summary['words_graduated']}词")
+            if parts:
+                st.caption(f"  · {'  '.join(parts)}")
+    except Exception:
+        pass  # 活动记录是附加功能，出错不影响主流程
 
     st.markdown("---")
 
@@ -185,7 +195,7 @@ with st.sidebar:
     st.markdown("### 本地库设置")
     default_roots = []
     cand = [
-        AO3_DOWNLOADS_DIR,
+        AO3_LIBRARY_DIR,
         ]
     for p in cand:
         if p.exists():
@@ -195,7 +205,7 @@ with st.sidebar:
         value=", ".join(sorted(set([d for d in default_roots if Path(d).exists()])))
     )
     recursive = st.checkbox("递归扫描子目录", value=True)
-    only_fff = st.checkbox("只识别 FFF 文件名（*-ao3_<ID>.html）", value=True) # 20251023-没想好"绿色版（AO3 off）"时要不要也加这句，先这样吧ry
+    only_fff = st.checkbox("只识别 AO3 作品文件（FFF 格式 + 官方下载格式）", value=True)
     st.markdown("---")
 
     if st.sidebar.button("🔄 清缓存 "):
@@ -346,7 +356,9 @@ if st.session_state.get('current_view') == 'vocabulary':
                         if st.button("好像认识", key=f"know_{word_data['id']}", use_container_width=True):
                             success, message, promoted = vdb.decrease_hp(word_data['id'])
                             if success:
+                                vdb.log_word_reviewed(lang=lang_code)
                                 if promoted:
+                                    vdb.log_word_graduated(lang=lang_code)
                                     st.toast(f"词条总选出道！（已返回词条列表）", icon="🎉")  # ← Toast 通知
                                 else:
                                     st.toast(f"HP 已更新（已返回词条列表，HP-1不能连点吧✓）")
@@ -359,6 +371,7 @@ if st.session_state.get('current_view') == 'vocabulary':
                         if st.button("不太认识", key=f"dont_know_{word_data['id']}", use_container_width=True):
                             success, message = vdb.increase_hp(word_data['id'])
                             if success:
+                                vdb.log_word_reviewed(lang=lang_code)
                                 st.info(message)
                                 st.rerun()
                             else:
@@ -788,6 +801,61 @@ if st.session_state.get('current_view') == 'hall_of_fame':
     st.markdown("**提示：** 关闭总选名人堂后，可以继续抽句子")
     st.stop() # 显示时不显示下面的抽句子功能……
 
+# 学习记录页面 - 📅 打卡记录
+if st.session_state.get('current_view') == 'activity':
+    show_flash_message()
+    st.markdown("## 📅 学习记录")
+
+    # 时间范围选择
+    range_options = {'最近 7 天': 7, '最近 30 天': 30, '最近一年': 366}
+    range_label = st.radio("查看范围", list(range_options.keys()), horizontal=True)
+    days = range_options[range_label]
+
+    history = vdb.get_activity_history(days)
+    summary = vdb.get_activity_summary(days)
+
+    # 汇总卡片
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("活跃天数", f"{summary['active_days']}/{summary['total_days']}")
+    col2.metric("翻译句数", summary['sentences_viewed'])
+    col3.metric("新词", f"+{summary['words_added']}")
+    col4.metric("复习次数", summary['words_reviewed'])
+
+    if summary['words_graduated'] > 0:
+        st.success(f"🎉 这段时间有 {summary['words_graduated']} 个词出道了！")
+
+    # 每日活动图表
+    if history:
+        import pandas as pd
+
+        df = pd.DataFrame(history)
+        df['date'] = df['day'].apply(
+            lambda d: (vdb.BIRTH_DATE + __import__('datetime').timedelta(days=d)).strftime('%m/%d')
+        )
+
+        # 堆叠柱状图数据
+        chart_data = df.set_index('date')[['sentences_viewed', 'words_added', 'words_reviewed', 'words_graduated']]
+        chart_data.columns = ['翻译句数', '新增词汇', '复习次数', '出道词数']
+
+        st.bar_chart(chart_data)
+
+        # 详细表格（可折叠）
+        with st.expander("📊 详细数据", expanded=False):
+            display_df = df[['date', 'sentences_viewed', 'words_added', 'words_reviewed', 'words_graduated', 'langs_used']].copy()
+            display_df.columns = ['日期', '翻译句数', '新增词汇', '复习次数', '出道词数', '使用语种']
+            # 只显示有活动的日子
+            active_df = display_df[
+                (display_df['翻译句数'] > 0) | (display_df['新增词汇'] > 0) |
+                (display_df['复习次数'] > 0) | (display_df['出道词数'] > 0)
+            ]
+            if not active_df.empty:
+                st.dataframe(active_df, use_container_width=True, hide_index=True)
+            else:
+                st.caption("这段时间暂无活动记录")
+    else:
+        st.info("暂无活动记录，开始学习就会自动记录哦~")
+
+    st.stop()
 
 
 # 抽选按钮 - 📖 学习模式（默认）
@@ -835,10 +903,12 @@ if enable_ao3:
                     if _name_cooccur(blob):
                         suspects.append(r)
             if suspects:
-                st.caption("⚠️ 可能漏算的样本（前 5 篇）：")
-                # 20251023-这里现在会把所有可选的目标CP的潜在漏算样本都列出来（即比如即使只选了神三神，也会把鹿狼鹿的可能篇目写在这里233）但先这样吧ry
-                for r in suspects[:5]:
-                    st.write(f"- {r.get('title') or '(无标题)'} (ID: {r.get('work_id') or '未知'})")
+                with st.expander(f"⚠️ 可能漏算的样本（{len(suspects)} 篇，点击展开）", expanded=False):
+                    # 20251023-这里现在会把所有可选的目标CP的潜在漏算样本都列出来（即比如即使只选了神三神，也会把鹿狼鹿的可能篇目写在这里233）但先这样吧ry
+                    for r in suspects[:5]:
+                        st.write(f"- {r.get('title') or '(无标题)'} (ID: {r.get('work_id') or '未知'})")
+                    if len(suspects) > 5:
+                        st.caption(f"（还有 {len(suspects) - 5} 篇未显示）")
 
 
 col_btn1, col_btn2 = st.columns(2)
@@ -861,6 +931,10 @@ if do_pick or reroll:
     else:
         sent = random.choice(rec["sentences"])
         translations = translate_sentence(sent, selected_langs)
+
+        # 记录活动：查看句子
+        for _lang in selected_langs:
+            vdb.log_sentence_viewed(lang=_lang)
 
         # 保存到 session_state
         st.session_state['current_sentence'] = sent

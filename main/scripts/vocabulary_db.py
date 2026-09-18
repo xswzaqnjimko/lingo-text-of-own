@@ -197,6 +197,19 @@ def init_db():
                   )
               ''')
 
+    # 每日活动记录表（Clozemaster 风格打卡）
+    c.execute('''
+              CREATE TABLE IF NOT EXISTS daily_activity
+              (
+                  day              INTEGER PRIMARY KEY,
+                  sentences_viewed INTEGER DEFAULT 0,
+                  words_added      INTEGER DEFAULT 0,
+                  words_reviewed   INTEGER DEFAULT 0,
+                  words_graduated  INTEGER DEFAULT 0,
+                  langs_used       TEXT DEFAULT ''
+              )
+              ''')
+
     # 创建索引
     c.execute('CREATE INDEX IF NOT EXISTS idx_vocab_lang ON vocabulary(lang)')
     c.execute('CREATE INDEX IF NOT EXISTS idx_vocab_word ON vocabulary(lang, word_lower)')
@@ -1199,6 +1212,109 @@ def get_hall_of_fame_list(lang: Optional[str] = None, limit: int = 100) -> List[
     conn.close()
 
     return results
+
+
+# %% 每日活动记录（打卡）============
+
+def _upsert_today(column: str, increment: int = 1, lang: str = None):
+    """内部：更新今日活动记录的某列（+increment），同时更新 langs_used。"""
+    day = get_current_day()
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    # 确保今日行存在
+    c.execute('INSERT OR IGNORE INTO daily_activity (day) VALUES (?)', (day,))
+
+    # 增加计数
+    c.execute(f'UPDATE daily_activity SET {column} = {column} + ? WHERE day = ?', (increment, day))
+
+    # 更新 langs_used（逗号分隔的去重语言集）
+    if lang:
+        c.execute('SELECT langs_used FROM daily_activity WHERE day = ?', (day,))
+        row = c.fetchone()
+        existing = set(filter(None, (row[0] or '').split(','))) if row else set()
+        existing.add(lang)
+        c.execute('UPDATE daily_activity SET langs_used = ? WHERE day = ?',
+                  (','.join(sorted(existing)), day))
+
+    conn.commit()
+    conn.close()
+
+
+def log_sentence_viewed(lang: str = None):
+    """记录：查看了一个句子（翻译）"""
+    _upsert_today('sentences_viewed', lang=lang)
+
+
+def log_word_added(lang: str = None):
+    """记录：添加了一个新词到生词本"""
+    _upsert_today('words_added', lang=lang)
+
+
+def log_word_reviewed(lang: str = None):
+    """记录：复习了一个词（认识/不认识）"""
+    _upsert_today('words_reviewed', lang=lang)
+
+
+def log_word_graduated(lang: str = None):
+    """记录：一个词出道（HP→0，进入名人堂）"""
+    _upsert_today('words_graduated', lang=lang)
+
+
+def get_activity_history(days: int = 7) -> list:
+    """
+    获取最近 N 天的活动记录。
+    返回列表，每项 = {'day': int, 'sentences_viewed': int, ...}
+    缺失的天补零。
+    """
+    today = get_current_day()
+    start_day = today - days + 1
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('''
+        SELECT * FROM daily_activity
+        WHERE day >= ? AND day <= ?
+        ORDER BY day ASC
+    ''', (start_day, today))
+    rows = {r['day']: dict(r) for r in c.fetchall()}
+    conn.close()
+
+    # 补零
+    result = []
+    for d in range(start_day, today + 1):
+        if d in rows:
+            result.append(rows[d])
+        else:
+            result.append({
+                'day': d,
+                'sentences_viewed': 0,
+                'words_added': 0,
+                'words_reviewed': 0,
+                'words_graduated': 0,
+                'langs_used': ''
+            })
+    return result
+
+
+def get_activity_summary(days: int = 7) -> dict:
+    """
+    获取最近 N 天的活动汇总。
+    返回 {'sentences_viewed': total, 'words_added': total, ..., 'active_days': count}
+    """
+    history = get_activity_history(days)
+    summary = {
+        'sentences_viewed': sum(h['sentences_viewed'] for h in history),
+        'words_added': sum(h['words_added'] for h in history),
+        'words_reviewed': sum(h['words_reviewed'] for h in history),
+        'words_graduated': sum(h['words_graduated'] for h in history),
+        'active_days': sum(1 for h in history if
+                          h['sentences_viewed'] > 0 or h['words_added'] > 0 or
+                          h['words_reviewed'] > 0 or h['words_graduated'] > 0),
+        'total_days': days,
+    }
+    return summary
 
 
 # 初始化数据库（导入时自动执行）
