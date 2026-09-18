@@ -14,13 +14,12 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent  # dependencies/ -> scripts/ 
 
 DATA_DIR = PROJECT_ROOT / "data"
 LIBRARY_DIR = DATA_DIR / "library" / "ao3"
-AO3_DOWNLOADS_DIR = LIBRARY_DIR / "ao3_downloads"
-URLS_ALL_FILE = LIBRARY_DIR / "urls_all.txt"
+AO3_LIBRARY_DIR = LIBRARY_DIR / "works"
 VOCAB_DB_PATH = DATA_DIR / "vocabulary_notebook" / "vocabulary.db"
 
 
 # %% AO3 默认设置（用于 ao3_collect_urls.py & ao3_download.py） ============
-DEFAULT_AO3_USER_URL = "https://archiveofourown.org/users/{your_user}}/works" # 请根据个人喜好更换
+DEFAULT_AO3_USER_URL = "https://archiveofourown.org/users/bakaXdoaho/works" # 请根据个人喜好更换
 
 # ao3_collect_urls.py 自动重试设置（跑完就走，不用盯着）
 COLLECT_MAX_AUTO_RETRIES = 5       # 最多自动重试几轮
@@ -37,6 +36,11 @@ DEEPL_API_KEY = os.getenv("DEEPL_API_KEY") # 请在lingo_text_launcher.txt里添
 DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 # Free 端点,免费 50 万字符/月的配额，超了当月就会被拒，不会扣费
 # https://developers.deepl.com/docs/resources/usage-limits
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # 请在lingo_text_launcher.txt里添加，运行时提供即可
+GOOGLE_API_URL = "https://translation.googleapis.com/language/translate/v2"
+# 官方 Cloud Translation API v2，免费 50 万字符/月
+# https://cloud.google.com/translate/pricing
 
 # BAIDU_APP_ID = os.getenv("BAIDU_APP_ID") or None
 # BAIDU_API_KEY = os.getenv("BAIDU_API_KEY") or None
@@ -95,6 +99,7 @@ SUPPORTED_LANGUAGES = {
 # （AO3 固定写法，尽量精确匹配，用于 设置-只选特定CP ）
 TARGET_RELAS = [
     "Yuris Leclair | Yuri Leclerc/Claude von Riegan",
+    "Yuris Leclair | Yuri Leclerc & Claude von Riegan",
     "Kaminaga/Miyoshi (Joker Game)",
 ]   # 可以随个人喜好改其他CP（ry
 
@@ -106,10 +111,10 @@ TARGET_RELAS = [
 TRANSLATORS = {
     'google': {
         'name': 'Google',
-        'requires_key': False,
-        'requires_proxy': True,  # 国内需翻墙
-        'enabled': True,
-        'note': '需要科学上网'
+        'requires_key': True,
+        'requires_proxy': False,
+        'enabled': bool(GOOGLE_API_KEY),  # 自动检测是否有key
+        'note': '需要API密钥（免费50万字符/月），Google 密钥可通过环境变量 GOOGLE_API_KEY 配置'
     },
     'deepl': {
         'name': 'DeepL',

@@ -6,9 +6,10 @@ import re
 import urllib.parse as up
 
 import requests
-from deep_translator import GoogleTranslator
 
-from dependencies.config import DEEPL_API_KEY, DEEPL_API_URL, SUPPORTED_LANGUAGES, LANGUAGE_DICTIONARIES
+from dependencies.config import (DEEPL_API_KEY, DEEPL_API_URL,
+                                 GOOGLE_API_KEY, GOOGLE_API_URL,
+                                 SUPPORTED_LANGUAGES, LANGUAGE_DICTIONARIES)
 
 
 # DeepL翻译
@@ -33,6 +34,28 @@ def deepl_translate(text, source_lang, target_lang):
         return r.json()['translations'][0]['text']
     except Exception as e:
         return f"(DeepL 调用失败：{e})"
+
+
+
+# Google Cloud Translation API v2
+def google_translate(text, source_lang, target_lang):
+    if not GOOGLE_API_KEY:
+        return "(Google 未配置密钥)"
+
+    params = {
+        'q': text,
+        'source': source_lang,
+        'target': target_lang,
+        'key': GOOGLE_API_KEY,
+        'format': 'text'
+    }
+
+    try:
+        r = requests.post(GOOGLE_API_URL, data=params, timeout=20)
+        r.raise_for_status()
+        return r.json()['data']['translations'][0]['translatedText']
+    except Exception as e:
+        return f"(Google 调用失败：{e})"
 
 
 # def baidu_translate(text, from_lang='zh', to_lang='en'):
@@ -82,7 +105,7 @@ def translate_sentence(sent: str, target_langs: list[str]) -> dict:
     """
     results = {}
     # 第一步：中文 → 英文（所有语言都需要）
-    google_en = GoogleTranslator(source='zh-CN', target='en').translate(sent)
+    google_en = google_translate(sent, 'zh-CN', 'en')
     deepl_en = deepl_translate(sent, 'zh', 'en')
 
     results['en'] = {
@@ -92,7 +115,7 @@ def translate_sentence(sent: str, target_langs: list[str]) -> dict:
 
     # 第二步：英文 → 各目标语言
     for lang in target_langs:
-        google_target = GoogleTranslator(source='en', target=lang).translate(google_en)
+        google_target = google_translate(google_en, 'en', lang)
         deepl_target = deepl_translate(deepl_en, 'en', lang)
 
         results[lang] = {

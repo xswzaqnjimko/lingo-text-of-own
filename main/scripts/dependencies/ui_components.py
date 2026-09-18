@@ -118,6 +118,7 @@ def display_translation_block(lang_code, translations, original_sentence, record
             )
 
             if is_new:
+                vdb.log_word_added(lang=lang_code)
                 st.success(message)
             else:
                 st.info(message)

@@ -23,6 +23,9 @@ SENT_RE = re.compile(r'.+?(?:[。！？]|……)(?:[」』"〉》）\)\]]+)?')
 # 从 FFF 生成的文件名里抓 ao3 id：Something-ao3_123456.html
 ID_IN_FILENAME_RE = re.compile(r'ao3_(\d+)\.html$', re.I)
 
+# AO3 官方下载格式：works/{id}/{id}.html（YC1001 备份格式）
+AO3_OFFICIAL_ID_RE = re.compile(r'^(\d+)\.html$')
+
 
 # —— 基于两列表格的解析助手 ——
 
@@ -114,6 +117,94 @@ def parse_fff_html(path: Path):
         "fname_lc": fname_lc,
     }
 
+def parse_ao3_official_html(path: Path):
+    """
+    从 AO3 官方下载的 HTML（YC1001 备份格式）中提取 meta。
+    结构：<dl class="tags"> 中的 <dt>/<dd> 对。
+    """
+    html = path.read_text(encoding="utf-8", errors="ignore")
+    soup = BeautifulSoup(html, "html.parser")
+
+    # work_id：从文件名提取（{id}.html）
+    work_id = None
+    m = AO3_OFFICIAL_ID_RE.match(path.name)
+    if m:
+        work_id = m.group(1)
+
+    # 标题：<h1> 或 <title>
+    title = None
+    h1 = soup.find('h1')
+    if h1:
+        title = h1.get_text(strip=True)
+    if not title and soup.title:
+        # <title> 格式: "标题 - 作者 - 原作"
+        title = soup.title.get_text(strip=True).split(' - ')[0].strip()
+    if not title:
+        title = path.stem
+
+    # 从 <dl class="tags"> 提取 meta
+    relationships = []
+    published = None
+    updated = None
+    series = []
+
+    dl = soup.find('dl', class_='tags')
+    if dl:
+        for dt in dl.find_all('dt'):
+            label = dt.get_text(strip=True).lower().rstrip(':')
+            dd = dt.find_next_sibling('dd')
+            if not dd:
+                continue
+
+            if label == 'relationships' or label == 'relationship':
+                # 每个关系在独立的 <a> 或逗号分隔
+                rels = [a.get_text(" ", strip=True) for a in dd.find_all('a')]
+                if not rels:
+                    raw = dd.get_text(" ", strip=True)
+                    rels = [s.strip() for s in raw.split(",") if s.strip()]
+                relationships = rels
+
+            elif label == 'series':
+                for a in dd.find_all('a', href=True):
+                    series.append({
+                        "title": a.get_text(" ", strip=True),
+                        "href": a['href']
+                    })
+
+            elif label == 'stats':
+                # Stats 里有 Published / Completed / Updated
+                stats_text = dd.get_text(" ", strip=True)
+                pub_m = re.search(r'Published:\s*(\d{4}-\d{2}-\d{2})', stats_text)
+                upd_m = re.search(r'(?:Updated|Completed):\s*(\d{4}-\d{2}-\d{2})', stats_text)
+                if pub_m:
+                    published = pub_m.group(1)
+                if upd_m:
+                    updated = upd_m.group(1)
+
+    doc_text_lc = (soup.get_text(" ", strip=True) or "").lower()
+    fname_lc = path.name.lower()
+
+    return {
+        "work_id": work_id,
+        "title": title,
+        "relationships": relationships,
+        "published": published,
+        "updated": updated,
+        "series": series,
+        "doc_text_lc": doc_text_lc,
+        "fname_lc": fname_lc,
+    }
+
+
+def _detect_html_format(soup) -> str:
+    """判断 HTML 是 FFF 格式还是 AO3 官方下载格式。"""
+    # AO3 官方格式标志：<dl class="tags">
+    if soup.find('dl', class_='tags'):
+        return 'ao3_official'
+    # FFF 格式标志：两列 table（含 Relationships 等标签）
+    return 'fff'
+
+
 def clean_text(t: str) -> str:
     t = unescape(t)
     # 统一空白
@@ -130,8 +221,12 @@ def extract_meta_and_text_from_html(path: Path):
     html = path.read_text(encoding="utf-8", errors="ignore")
     soup = BeautifulSoup(html, "html.parser")
 
-    # 先拿 meta
-    info = parse_fff_html(path)
+    # 自动检测格式并解析 meta
+    fmt = _detect_html_format(soup)
+    if fmt == 'ao3_official':
+        info = parse_ao3_official_html(path)
+    else:
+        info = parse_fff_html(path)
 
     # 正文（优先 userstuff / chapters 容器）
     text_blocks = []
@@ -244,14 +339,26 @@ def index_local_corpus_core(root_dirs, recursive=True, limit_files=0, only_fff=T
     """
     records = []
     total = 0
+    # 需要跳过的文件名/目录（AO3 官方下载格式中的辅助文件）
+    SKIP_NAMES = {'navigate.html'}
+    SKIP_DIRS = {'index_raw', 'series', 'assets'}
+
     for d in root_dirs:
         base = Path(d).expanduser()
         if not base.exists():
             continue
         pattern = "**/*.html" if recursive else "*.html"
         for p in base.glob(pattern):
-            if only_fff and not ID_IN_FILENAME_RE.search(p.name):
-                continue  # 只要 FFF 保存出来的 -ao3_ID.html
+            # 跳过辅助文件
+            if p.name in SKIP_NAMES:
+                continue
+            if any(skip in p.parts for skip in SKIP_DIRS):
+                continue
+            # 识别有效的 AO3 HTML：FFF 格式 或 官方下载格式（{id}.html）
+            is_fff = bool(ID_IN_FILENAME_RE.search(p.name))
+            is_official = bool(AO3_OFFICIAL_ID_RE.match(p.name))
+            if only_fff and not is_fff and not is_official:
+                continue  # 只要能识别出 ao3 ID 的 HTML
             total += 1
             try:
                 rec = extract_meta_and_text_from_html(p)
