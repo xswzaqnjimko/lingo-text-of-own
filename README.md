@@ -1,6 +1,6 @@
 # lingo-text-of-own: Language Learning from User-Defined Literature Library
 
-A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking. Still in progress.
+A Streamlit-based vocabulary learning tool that helps you learn foreign languages with your favorite literature! Extract sentences from your local library, compare translation engines, and build a personalized vocabulary notebook with gamified tracking. A personal language learning tool only - no content is hosted or distributed; what you put in your library is your own responsibility, please respect the rights of original creators. Still in progress.
 
 ---
 
