@@ -1,8 +1,9 @@
-PROJECT_ROOT="/your/directory/to/version/main"
+PROJECT_ROOT="/your/directory/to/lingo-text-of-own/contents/main"
 cd "$PROJECT_ROOT"
 PYTHON="$PROJECT_ROOT/.venv/bin/python3"
 
-export DEEPL_API_KEY="your_API_key"
+export DEEPL_API_KEY="your_deepl_api_key"
+export GOOGLE_API_KEY="your_google_api_key"
 
 pkill -f "streamlit run scripts/main.py" || true
 sleep 1
