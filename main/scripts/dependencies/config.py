@@ -1,5 +1,5 @@
 # config.py - 集中配置文件
-# v1.1: 所有路径、API密钥、偏好设置集中在此，方便日后修改
+# v1.2: 所有路径、API密钥、偏好设置集中在此，方便日后修改
 # 搬家/改路径/换API Key时只改这个文件就行
 
 import os
@@ -7,27 +7,14 @@ import urllib.parse as up
 from pathlib import Path
 from datetime import date
 
-
 # %% 路径配置 ============
 # PROJECT_ROOT 指向 main/ 文件夹
 PROJECT_ROOT = Path(__file__).parent.parent.parent  # dependencies/ -> scripts/ -> main/
 
-DATA_DIR = PROJECT_ROOT / "data"
+DATA_DIR = PROJECT_ROOT.parent / "data"  # contents/data/
 LIBRARY_DIR = DATA_DIR / "library" / "ao3"
 AO3_LIBRARY_DIR = LIBRARY_DIR / "works"
 VOCAB_DB_PATH = DATA_DIR / "vocabulary_notebook" / "vocabulary.db"
-
-
-# %% AO3 默认设置（用于 ao3_collect_urls.py & ao3_download.py） ============
-DEFAULT_AO3_USER_URL = "https://archiveofourown.org/users/bakaXdoaho/works" # 请根据个人喜好更换
-
-# ao3_collect_urls.py 自动重试设置（跑完就走，不用盯着）
-COLLECT_MAX_AUTO_RETRIES = 5       # 最多自动重试几轮
-COLLECT_RETRY_WAIT_SECONDS = 60    # 每轮失败后等多久再试（秒）
-
-# ao3_download.py 失败重试设置
-DOWNLOAD_RETRY_WAIT_SECONDS = 30   # 批量下载后，重试失败URL前等多久（秒）
-
 
 # %% API Keys 配置 ============
 # （优先级：环境变量 > 硬编码 > st.secrets）
@@ -45,11 +32,9 @@ GOOGLE_API_URL = "https://translation.googleapis.com/language/translate/v2"
 # BAIDU_APP_ID = os.getenv("BAIDU_APP_ID") or None
 # BAIDU_API_KEY = os.getenv("BAIDU_API_KEY") or None
 
-
 # %% 生词本配置 ============
 BIRTH_DATE = date(2025, 10, 10)  # 程序生日
 MAX_ENCOUNTERS = 128  # 每个词最多保留128次遭遇记录
-
 
 # %% 偏好设置（如目标语种/喜好CP） ============
 
@@ -94,7 +79,6 @@ SUPPORTED_LANGUAGES = {
 #   但是合并进比如 SUPPORTED_LANGUAGES 的话，我更新、尤其是更新词典的时候容易懒得下去翻它都有啥（。
 #   所以先这样吧（。
 
-
 # ————— 目标CP配置 —————
 # （AO3 固定写法，尽量精确匹配，用于 设置-只选特定CP ）
 TARGET_RELAS = [
@@ -102,7 +86,6 @@ TARGET_RELAS = [
     "Yuris Leclair | Yuri Leclerc & Claude von Riegan",
     "Kaminaga/Miyoshi (Joker Game)",
 ]   # 可以随个人喜好改其他CP（ry
-
 
 # %% 翻译器配置 ============
 

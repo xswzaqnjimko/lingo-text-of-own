@@ -11,27 +11,23 @@ v1.2 (2026-09-18): Google Translate switched to official Cloud Translation API v
 ## Project Structure
 ```
 lingo-text-of-own/
-└── v1.1/
-    └── main/
-        ├── launcher.txt                 # Commands for launching
-        ├── scripts/
-        │   ├── main.py                  # Main Streamlit application
-        │   ├── vocabulary_db.py         # SQLite database operations
-        │   ├── ao3_collect_urls.py      # URL collection
-        │   ├── ao3_download.py          # Batch downloader
-        │   └── dependencies/
-        │       ├── __init__.py
-        │       ├── config.py            # Centralized paths, API keys, settings
-        │       ├── ao3_parser.py        # HTML parsing & keyword matching
-        │       ├── translation.py       # DeepL, Google, dictionary links
-        │       ├── ui_components.py     # Streamlit display functions
-        │       └── i18n.py              # Internationalization (WIP)
-        └── data/
-            ├── library/ao3/
-            │   ├── ao3_downloads/       # Downloaded HTML files
-            │   └── urls_all.txt         # Collected work URLs for download
-            └── vocabulary_notebook/
-                └── vocabulary.db        # SQLite database (auto-generated)
+└── contents/
+    ├── main/
+    │   ├── launcher.txt                 # Commands example for launching
+    │   └── scripts/
+    │       ├── main.py                  # Main Streamlit application
+    │       ├── vocabulary_db.py         # SQLite database operations
+    │       └── dependencies/
+    │           ├── __init__.py
+    │           ├── config.py            # Centralized paths, API keys, settings
+    │           ├── ao3_parser.py        # HTML parsing & keyword matching
+    │           ├── translation.py       # Google Cloud Translation, DeepL, dictionary links
+    │           ├── ui_components.py     # Streamlit display functions
+    │           └── i18n.py              # Internationalization (WIP)
+    └── data/                            # Personal data (not on GitHub)
+        ├── library/
+        └── vocabulary_notebook/
+            └── vocabulary.db            # SQLite database (auto-generated)
 ```
 
 ---
@@ -67,21 +63,19 @@ lingo-text-of-own/
 
 ### Prerequisites
 - Python 3.8+
+- Google Cloud Translation API key (free tier: 500,000 characters/month)
 - DeepL API key (free tier: 500,000 characters/month)
-- [FanFicFare](https://github.com/JimmXinu/FanFicFare) (for template html downloads)
 
 ### Setup
 
 ```bash
 # 1. Install dependencies
 pip install -r requirements.txt
-pip install FanFicFare
 
 # 2. Configure
 #    Edit scripts/dependencies/config.py, or directly edit in launcher.txt for fast deployment
 
-# 3. Place HTML files in data/library/library_group
-#    Or use the built-in scripts to collect & download (see below)
+# 3. Place AO3 official download HTML files in data/library/ao3/works/
 ```
 
 ---
@@ -90,23 +84,11 @@ pip install FanFicFare
 
 ### Launch the App
 
-From `v1.1/main/`:
+From `contents/main/`:
 ```bash
 streamlit run scripts/main.py
 ```
 Or copy (and edit) the commands in `launcher.txt` into an Automator app for double-click launch.
-
-### Build Your Library
-
-Both scripts are PyCharm-runnable with zero arguments (defaults from `config.py`):
-
-```bash
-# Collect work URLs (auto-resumes on failure, auto-retries up to 5x)
-python scripts/ao3_collect_urls.py
-
-# Download all works as HTML (auto-retries on failure)
-python scripts/ao3_download.py
-```
 
 ### Learning Workflow
 
@@ -124,6 +106,7 @@ All settings live in `scripts/dependencies/config.py`:
 
 | Setting | What it does |
 |---|---|
+| `GOOGLE_API_KEY` | Google Cloud Translation API key; or set in launcher.txt |
 | `DEEPL_API_KEY` | DeepL API key; or set in launcher.txt |
 | `DEFAULT_LANG` | Default target language (`'es'`, `'fr'`, `'it'`) |
 | `SUPPORTED_LANGUAGES` | Add new target languages here |
@@ -138,8 +121,9 @@ cp vocabulary.db vocabulary_backup_$(date +%Y%m%d).db
 
 ---
 
-## To-do
+## To-do (maybe)
 
+- Other kinds of library input
 - Spaced repetition review mode
 - Multiple source language support (English first)
 - i18n for English & other language UI
@@ -149,14 +133,12 @@ cp vocabulary.db vocabulary_backup_$(date +%Y%m%d).db
 
 ---
 
-**Licenses:**
-- Code: [AGPL-3.0](LICENSE)
-- Documentation: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+**License:** [MIT](LICENSE.txt)
 
 ---
 
 ## Acknowledgments
 
-Built with [Streamlit](https://streamlit.io/), [DeepL API](https://www.deepl.com/docs-api), [deep-translator](https://github.com/nidhaloff/deep-translator), and [FanFicFare](https://github.com/JimmXinu/FanFicFare). Thanks to creator's personalized needs & interests, friends & families, techs, chats, chazuke & sashimi.
+Built with [Streamlit](https://streamlit.io/), [Google Cloud Translation API](https://cloud.google.com/translate), and [DeepL API](https://www.deepl.com/docs-api). Name inspired by AO3 - thank you AO3 for everything; thanks to creator's friends & families, techs, chats, chazuke & sashimi.
 
 
