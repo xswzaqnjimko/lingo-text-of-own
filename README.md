@@ -4,6 +4,8 @@ A Streamlit-based vocabulary learning tool that helps you learn foreign language
 
 ---
 
+v1.2.1 (2026-09-22): Removed legacy FanFicFare HTML parsing; AO3 official download format only.
+
 v1.2 (2026-09-18): Google Translate switched to official Cloud Translation API v2 (requires GOOGLE_API_KEY); added support for AO3 official download HTML format; navigation redesigned with st.radio; added daily activity tracking with learning record page. Some cleanup.
 
 ---

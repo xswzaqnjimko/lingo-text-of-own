@@ -52,9 +52,9 @@ import vocabulary_db as vdb
 # 从本地文库准备
 
 @st.cache_data(show_spinner=False)
-def index_local_corpus(root_dirs, recursive=True, limit_files=0, only_fff=True):
-    """扫描给定目录里的 .html，返回记录列表；缓存以加快后续使用。索引时可选"只认 FFF 文件名模式"（默认开启）"""
-    return index_local_corpus_core(root_dirs, recursive=recursive, limit_files=limit_files, only_fff=only_fff)
+def index_local_corpus(root_dirs, recursive=True, limit_files=0):
+    """扫描给定目录里的 .html，返回记录列表；缓存以加快后续使用。"""
+    return index_local_corpus_core(root_dirs, recursive=recursive, limit_files=limit_files)
 
 
 # %% Streamlit 主界面 ============
@@ -205,7 +205,6 @@ with st.sidebar:
         value=", ".join(sorted(set([d for d in default_roots if Path(d).exists()])))
     )
     recursive = st.checkbox("递归扫描子目录", value=True)
-    only_fff = st.checkbox("只识别 AO3 作品文件（FFF 格式 + 官方下载格式）", value=True)
     st.markdown("---")
 
     if st.sidebar.button("🔄 清缓存 "):
@@ -215,7 +214,7 @@ with st.sidebar:
 
 # 索引本地库
 root_dirs = [s.strip() for s in roots_input.split(",") if s.strip()]
-records, scanned = index_local_corpus(root_dirs, recursive=recursive, only_fff=only_fff)
+records, scanned = index_local_corpus(root_dirs, recursive=recursive)
 
 # 根据侧栏多选决定当前生效的文库内目标（全不选=空；随机CP时忽略）
 active_targets = sel_targets[:] if not random_any else []

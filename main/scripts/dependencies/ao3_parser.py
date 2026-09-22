@@ -1,6 +1,6 @@
 # ao3_parser.py - AO3 HTML 解析模块
-# v1.1: 从 整点腿肉机翻.py 中提取出来的 AO3 HTML 解析相关函数
-# 包括：FFF HTML 解析、中文分句、CP匹配等
+# v1.2.1: 仅支持 AO3 官方下载 HTML 格式
+# 包括：AO3 官方 HTML 解析、中文分句、CP匹配等
 
 import re
 import unicodedata
@@ -20,102 +20,10 @@ SENT_RE = re.compile(r'.+?(?:[。！？]|……)(?:[」』"〉》）\)\]]+)?')
 
 # %% 设置-AO3作品Meta ============
 
-# 从 FFF 生成的文件名里抓 ao3 id：Something-ao3_123456.html
-ID_IN_FILENAME_RE = re.compile(r'ao3_(\d+)\.html$', re.I)
-
-# AO3 官方下载格式：works/{id}/{id}.html（YC1001 备份格式）
+# AO3 官方下载格式：works/{id}/{id}.html
 AO3_OFFICIAL_ID_RE = re.compile(r'^(\d+)\.html$')
 
 
-# —— 基于两列表格的解析助手 ——
-
-def _get_value_cell_by_label(soup: BeautifulSoup, label: str):
-    """
-    在两列表格中，找到左侧<b>Label:</b>的行，返回右侧<td>节点（或None）。
-    label 匹配不区分大小写，仅比较前缀（去掉冒号）。
-    """
-    label = label.strip().lower().rstrip(':')
-    for tr in soup.select('table tr'):
-        tds = tr.find_all('td')
-        if len(tds) >= 2:
-            left = tds[0].get_text(" ", strip=True).lower().rstrip(':')
-            if left.startswith(label):
-                return tds[1]
-    return None
-
-def parse_fff_html(path: Path):
-    """
-    从 FFF 导出的 AO3 HTML 中提取：
-      - work_id, title
-      - relationships (list[str])
-      - published (str), updated (str)
-      - series (list[dict]: [{'title':..., 'href':...}])
-      - doc_text_lc / fname_lc（用于兜底匹配或调试）
-    """
-    html = path.read_text(encoding="utf-8", errors="ignore")
-    soup = BeautifulSoup(html, "html.parser")
-
-    # 标题 & work_id（优先从 h1 > a）
-    title = None
-    work_id = None
-    h1 = soup.find('h1')
-    if h1:
-        a = h1.find('a', href=re.compile(r'/works/\d+'))
-        if a:
-            title = a.get_text(strip=True)
-            m = re.search(r'/works/(\d+)', a.get('href',''))
-            if m:
-                work_id = m.group(1)
-    if not title and soup.title:
-        title = soup.title.get_text(strip=True)
-    if not title:
-        title = path.stem
-    if not work_id:
-        m = ID_IN_FILENAME_RE.search(path.name)
-        if m:
-            work_id = m.group(1)
-
-    # Relationships
-    rel_td = _get_value_cell_by_label(soup, "Relationships")
-    relationships = []
-    if rel_td:
-        relationships = [a.get_text(" ", strip=True) for a in rel_td.find_all('a')]
-        if not relationships:
-            raw = rel_td.get_text(" ", strip=True)
-            relationships = [s.strip() for s in raw.split(",") if s.strip()]
-
-    # Published / Updated
-    published = None
-    updated = None
-    pub_td = _get_value_cell_by_label(soup, "Published")
-    upd_td = _get_value_cell_by_label(soup, "Updated")
-    if pub_td: published = pub_td.get_text(" ", strip=True)
-    if upd_td: updated  = upd_td.get_text(" ", strip=True)
-
-    # Series（可能有多个 a）
-    series = []
-    ser_td = _get_value_cell_by_label(soup, "Series")
-    if ser_td:
-        for a in ser_td.find_all('a', href=True):
-            series.append({
-                "title": a.get_text(" ", strip=True),
-                "href": a['href']
-            })
-
-    # 额外：全文/文件名（小写），便于兜底匹配或调试
-    doc_text_lc = (soup.get_text(" ", strip=True) or "").lower()
-    fname_lc = path.name.lower()
-
-    return {
-        "work_id": work_id,
-        "title": title,
-        "relationships": relationships,
-        "published": published,
-        "updated": updated,
-        "series": series,
-        "doc_text_lc": doc_text_lc,
-        "fname_lc": fname_lc,
-    }
 
 def parse_ao3_official_html(path: Path):
     """
@@ -196,13 +104,6 @@ def parse_ao3_official_html(path: Path):
     }
 
 
-def _detect_html_format(soup) -> str:
-    """判断 HTML 是 FFF 格式还是 AO3 官方下载格式。"""
-    # AO3 官方格式标志：<dl class="tags">
-    if soup.find('dl', class_='tags'):
-        return 'ao3_official'
-    # FFF 格式标志：两列 table（含 Relationships 等标签）
-    return 'fff'
 
 
 def clean_text(t: str) -> str:
@@ -216,17 +117,12 @@ def clean_text(t: str) -> str:
 
 def extract_meta_and_text_from_html(path: Path):
     """
-    使用 parse_fff_html 精确抽取 meta，再抽正文中文句子。
+    从 AO3 官方下载 HTML 中提取 meta 和正文中文句子。
     """
     html = path.read_text(encoding="utf-8", errors="ignore")
     soup = BeautifulSoup(html, "html.parser")
 
-    # 自动检测格式并解析 meta
-    fmt = _detect_html_format(soup)
-    if fmt == 'ao3_official':
-        info = parse_ao3_official_html(path)
-    else:
-        info = parse_fff_html(path)
+    info = parse_ao3_official_html(path)
 
     # 正文（优先 userstuff / chapters 容器）
     text_blocks = []
@@ -333,8 +229,8 @@ def _diag_breakdown(records, targets_exact, targets_patterns):
     return by_exact, by_fallback
 
 
-def index_local_corpus_core(root_dirs, recursive=True, limit_files=0, only_fff=True):
-    """扫描给定目录里的 .html，返回记录列表。索引时可选"只认 FFF 文件名模式"（默认开启）
+def index_local_corpus_core(root_dirs, recursive=True, limit_files=0):
+    """扫描给定目录里的 .html，返回记录列表。只认 AO3 官方下载格式（{id}.html）。
     注意：Streamlit 的 @st.cache_data 装饰器在 main.py 里加，这里是纯逻辑。
     """
     records = []
@@ -354,11 +250,9 @@ def index_local_corpus_core(root_dirs, recursive=True, limit_files=0, only_fff=T
                 continue
             if any(skip in p.parts for skip in SKIP_DIRS):
                 continue
-            # 识别有效的 AO3 HTML：FFF 格式 或 官方下载格式（{id}.html）
-            is_fff = bool(ID_IN_FILENAME_RE.search(p.name))
-            is_official = bool(AO3_OFFICIAL_ID_RE.match(p.name))
-            if only_fff and not is_fff and not is_official:
-                continue  # 只要能识别出 ao3 ID 的 HTML
+            # 只认 AO3 官方下载格式：{id}.html
+            if not AO3_OFFICIAL_ID_RE.match(p.name):
+                continue
             total += 1
             try:
                 rec = extract_meta_and_text_from_html(p)
