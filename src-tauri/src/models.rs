@@ -205,3 +205,11 @@ pub struct LibraryStats {
     pub total_sentences: usize,
     pub scanned_files: usize,
 }
+
+/// API usage stats for current month
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiUsage {
+    pub google_chars: i64,
+    pub deepl_chars: i64,
+    pub month_label: String,
+}

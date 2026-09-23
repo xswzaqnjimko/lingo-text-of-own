@@ -145,3 +145,9 @@ export async function getActivityHistory(days) {
 export async function getActivitySummary(days) {
   return invoke("get_activity_summary", { days });
 }
+
+// === API Usage ===
+
+export async function getApiUsage() {
+  return invoke("get_api_usage");
+}

@@ -11,6 +11,7 @@ import {
   getEligibleCount,
   getLibraryStats,
   logWordAdded,
+  getApiUsage,
 } from "../services/database";
 
 export default function SentenceView({
@@ -33,6 +34,7 @@ export default function SentenceView({
 
   // Pool info: eligible / total works
   const [poolInfo, setPoolInfo] = useState(null);
+  const [apiUsage, setApiUsage] = useState(null);
 
   useEffect(() => {
     const randomAny = !targetRelationships || targetRelationships.length === 0;
@@ -43,6 +45,10 @@ export default function SentenceView({
       .then(([[eligible, total], stats]) =>
         setPoolInfo({ eligible, total, totalSentences: stats.total_sentences })
       )
+      .catch(console.error);
+
+    getApiUsage()
+      .then(setApiUsage)
       .catch(console.error);
   }, [targetRelationships]);
 
@@ -96,6 +102,8 @@ export default function SentenceView({
       showToast(t("error_api", lang) + String(e));
     } finally {
       setLoading(false);
+      // Refresh API usage after translation
+      getApiUsage().then(setApiUsage).catch(console.error);
     }
   }, [selectedLangs, showComparison, googleApiKey, deeplApiKey, targetRelationships, lang, showToast]);
 
@@ -156,6 +164,20 @@ export default function SentenceView({
             <span style={{ marginLeft: 8 }}>
               {t("pool_sentences", lang, poolInfo.totalSentences)}
             </span>
+          )}
+        </p>
+      )}
+
+      {/* API usage */}
+      {apiUsage && (apiUsage.google_chars > 0 || apiUsage.deepl_chars > 0) && (
+        <p className="form-hint" style={{ marginBottom: 8, fontSize: 11, opacity: 0.7 }}>
+          {t("api_usage", lang,
+            apiUsage.google_chars >= 1000
+              ? Math.round(apiUsage.google_chars / 1000) + "k"
+              : String(apiUsage.google_chars),
+            apiUsage.deepl_chars >= 1000
+              ? Math.round(apiUsage.deepl_chars / 1000) + "k"
+              : String(apiUsage.deepl_chars)
           )}
         </p>
       )}
@@ -321,7 +343,9 @@ function TransBlock({ label, text, langCode, engine, openTts, uiLang, dictLinks 
       <div className="translation-text">{text}</div>
 
       {dictLinks && dictLinks.length > 0 && (
-        <div className="dict-chips">
+        <>
+          <div className="card-label" style={{ marginTop: 8, marginBottom: 4 }}>{t("dict_link", uiLang)}</div>
+          <div className="dict-chips">
           {dictLinks.map(([word, url], i) => (
             <a
               key={i}
@@ -333,6 +357,7 @@ function TransBlock({ label, text, langCode, engine, openTts, uiLang, dictLinks 
             </a>
           ))}
         </div>
+        </>
       )}
     </div>
   );

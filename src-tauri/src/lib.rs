@@ -160,8 +160,19 @@ fn translate_sentence(
     target_langs: Vec<String>,
     google_key: String,
     deepl_key: String,
+    state: tauri::State<AppState>,
 ) -> HashMap<String, EngineTranslations> {
-    translation::translate_sentence(&sentence, &target_langs, &google_key, &deepl_key)
+    let (results, google_chars, deepl_chars) =
+        translation::translate_sentence(&sentence, &target_langs, &google_key, &deepl_key);
+
+    // Log API character usage
+    if google_chars > 0 || deepl_chars > 0 {
+        let conn = state.db.lock().unwrap();
+        database::log_api_chars(&conn, "google", google_chars);
+        database::log_api_chars(&conn, "deepl", deepl_chars);
+    }
+
+    results
 }
 
 #[tauri::command]
@@ -358,6 +369,12 @@ fn get_activity_summary(days: i64, state: tauri::State<AppState>) -> ActivitySum
     database::get_activity_summary(&conn, days)
 }
 
+#[tauri::command]
+fn get_api_usage(state: tauri::State<AppState>) -> ApiUsage {
+    let conn = state.db.lock().unwrap();
+    database::get_api_usage(&conn)
+}
+
 // === App setup ===
 
 fn get_db_path(app: &tauri::App) -> String {
@@ -431,6 +448,7 @@ pub fn run() {
             log_word_graduated,
             get_activity_history,
             get_activity_summary,
+            get_api_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

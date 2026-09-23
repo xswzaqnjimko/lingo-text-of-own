@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use rusqlite::{params, Connection, Result as SqlResult};
 use std::collections::HashMap;
 
@@ -961,4 +961,71 @@ pub fn get_activity_summary(conn: &Connection, days: i64) -> ActivitySummary {
         words_reviewed: 0,
         words_graduated: 0,
     })
+}
+
+// === API usage tracking ===
+
+/// Get the current month key (e.g. "2026_09")
+fn current_month_key() -> String {
+    let now = chrono::Local::now();
+    format!("{:04}_{:02}", now.year(), now.month())
+}
+
+/// Log API characters used for an engine this month
+pub fn log_api_chars(conn: &Connection, engine: &str, chars: usize) {
+    if chars == 0 {
+        return;
+    }
+    let month = current_month_key();
+    let key = format!("api_chars_{}_{}", engine, month);
+
+    // Get current value
+    let current: i64 = conn
+        .query_row(
+            "SELECT CAST(value AS INTEGER) FROM metadata WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    let new_val = current + chars as i64;
+    conn.execute(
+        "INSERT OR REPLACE INTO metadata (key, value) VALUES (?1, ?2)",
+        params![key, new_val.to_string()],
+    )
+    .ok();
+}
+
+/// Get API usage for current month
+pub fn get_api_usage(conn: &Connection) -> crate::models::ApiUsage {
+    let month = current_month_key();
+
+    let google_key = format!("api_chars_google_{}", month);
+    let deepl_key = format!("api_chars_deepl_{}", month);
+
+    let google_chars: i64 = conn
+        .query_row(
+            "SELECT CAST(value AS INTEGER) FROM metadata WHERE key = ?1",
+            params![google_key],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    let deepl_chars: i64 = conn
+        .query_row(
+            "SELECT CAST(value AS INTEGER) FROM metadata WHERE key = ?1",
+            params![deepl_key],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    // Format month label like "2026-09"
+    let now = chrono::Local::now();
+    let month_label = format!("{:04}-{:02}", now.year(), now.month());
+
+    crate::models::ApiUsage {
+        google_chars,
+        deepl_chars,
+        month_label,
+    }
 }

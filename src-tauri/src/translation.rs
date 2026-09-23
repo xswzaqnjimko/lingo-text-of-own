@@ -77,18 +77,30 @@ pub fn deepl_translate(
 }
 
 /// Translate a Chinese sentence to English and target languages
-/// Returns: { "en": { google, deepl }, "es": { google, deepl }, ... }
+/// Returns: (translations_map, google_chars_used, deepl_chars_used)
 pub fn translate_sentence(
     sentence: &str,
     target_langs: &[String],
     google_key: &str,
     deepl_key: &str,
-) -> HashMap<String, EngineTranslations> {
+) -> (HashMap<String, EngineTranslations>, usize, usize) {
     let mut results = HashMap::new();
+    let mut google_chars: usize = 0;
+    let mut deepl_chars: usize = 0;
+
+    // Count input chars for billing (only when key is configured)
+    let sentence_char_count = sentence.chars().count();
 
     // Step 1: Chinese -> English
+    if !google_key.is_empty() {
+        google_chars += sentence_char_count;
+    }
     let google_en = google_translate(sentence, "zh-CN", "en", google_key)
         .unwrap_or_else(|e| format!("({})", e));
+
+    if !deepl_key.is_empty() {
+        deepl_chars += sentence_char_count;
+    }
     let deepl_en = deepl_translate(sentence, "zh", "en", deepl_key)
         .unwrap_or_else(|e| format!("({})", e));
 
@@ -102,8 +114,15 @@ pub fn translate_sentence(
 
     // Step 2: English -> each target language
     for lang in target_langs {
+        if !google_key.is_empty() {
+            google_chars += google_en.chars().count();
+        }
         let google_target = google_translate(&google_en, "en", lang, google_key)
             .unwrap_or_else(|e| format!("({})", e));
+
+        if !deepl_key.is_empty() {
+            deepl_chars += deepl_en.chars().count();
+        }
         let deepl_target = deepl_translate(&deepl_en, "en", lang, deepl_key)
             .unwrap_or_else(|e| format!("({})", e));
 
@@ -116,7 +135,7 @@ pub fn translate_sentence(
         );
     }
 
-    results
+    (results, google_chars, deepl_chars)
 }
 
 // === Dictionary and TTS link generation ===
