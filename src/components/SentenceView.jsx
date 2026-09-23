@@ -9,6 +9,8 @@ import {
   addWord,
   logSentenceViewed,
   getEligibleCount,
+  getLibraryStats,
+  logWordAdded,
 } from "../services/database";
 
 export default function SentenceView({
@@ -34,8 +36,13 @@ export default function SentenceView({
 
   useEffect(() => {
     const randomAny = !targetRelationships || targetRelationships.length === 0;
-    getEligibleCount(targetRelationships || [], randomAny)
-      .then(([eligible, total]) => setPoolInfo({ eligible, total }))
+    Promise.all([
+      getEligibleCount(targetRelationships || [], randomAny),
+      getLibraryStats(),
+    ])
+      .then(([[eligible, total], stats]) =>
+        setPoolInfo({ eligible, total, totalSentences: stats.total_sentences })
+      )
       .catch(console.error);
   }, [targetRelationships]);
 
@@ -115,6 +122,7 @@ export default function SentenceView({
           (sentence.relationships || []).join(", ") || null
         );
         showToast(result.message);
+        logWordAdded(langCode).catch(console.error);
         setWordInputs((prev) => ({ ...prev, [langCode]: "" }));
         onRefreshStats();
       } catch (e) {
@@ -144,6 +152,11 @@ export default function SentenceView({
       {poolInfo && (
         <p className="form-hint" style={{ marginBottom: 8 }}>
           {t("pool_info", lang, poolInfo.eligible, poolInfo.total)}
+          {poolInfo.totalSentences != null && (
+            <span style={{ marginLeft: 8 }}>
+              {t("pool_sentences", lang, poolInfo.totalSentences)}
+            </span>
+          )}
         </p>
       )}
 

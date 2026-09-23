@@ -9,7 +9,7 @@ const RANGES = [
 ];
 
 export default function Activity({ lang }) {
-  const [range, setRange] = useState(30);
+  const [range, setRange] = useState(7);
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
 
@@ -96,6 +96,12 @@ export default function Activity({ lang }) {
       {/* Bar chart */}
       {filledHistory.length > 0 && (
         <div className="chart-container">
+          <div className="chart-area">
+          <div className="chart-y-axis">
+            <span className="chart-y-label">{maxVal}</span>
+            <span className="chart-y-label">{Math.round(maxVal / 2)}</span>
+            <span className="chart-y-label">0</span>
+          </div>
           <div className="chart-bars">
             {filledHistory.map((day, i) => {
               const sH = (day.sentences_viewed / maxVal) * 100;
@@ -130,6 +136,7 @@ export default function Activity({ lang }) {
                 </div>
               );
             })}
+          </div>
           </div>
 
           <div className="chart-legend">

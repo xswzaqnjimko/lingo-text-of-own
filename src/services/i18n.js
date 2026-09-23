@@ -15,9 +15,10 @@ const UI_TEXTS = {
     stats_by_lang: "  · {0}: {1} 个",
 
     // Home
-    title_home: "🍚 整点腿肉机翻",
+    title_home: "🍚 整点腿肉机翻假装能学外语ry",
     draw_sentence: "🎲 抽一句",
     pool_info: "📦 可抽取作品：{0} / {1} 篇",
+    pool_sentences: "共 {0} 句",
     no_eligible: "当前筛选条件下无可用作品",
     original_sentence: "原文（中文）",
     english_translation: "英语翻译（过渡&对照用）",
@@ -172,6 +173,7 @@ const UI_TEXTS = {
     title_home: "🍚 Language Learning from Literature",
     draw_sentence: "🎲 Draw a sentence",
     pool_info: "📦 Eligible works: {0} / {1}",
+    pool_sentences: "({0} sentences total)",
     no_eligible: "No works available under current filters",
     original_sentence: "Original (Chinese)",
     english_translation: "English Translation (Reference)",

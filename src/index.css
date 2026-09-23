@@ -628,12 +628,36 @@ label {
   box-shadow: var(--shadow);
 }
 
+.chart-area {
+  display: flex;
+  align-items: stretch;
+}
+
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-right: 6px;
+  padding-bottom: 18px;
+  padding-top: 8px;
+  height: 120px;
+}
+
+.chart-y-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
 .chart-bars {
   display: flex;
   align-items: flex-end;
   gap: 2px;
   height: 120px;
   padding-top: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .chart-bar-group {
