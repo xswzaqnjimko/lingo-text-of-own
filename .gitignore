@@ -1,47 +1,28 @@
-# === Python ===
-__pycache__/
-*.py[cod]
-*.pyo
-*.egg-info/
+# Dependencies
+node_modules/
+
+# Build output
 dist/
-build/
-*.egg
 
-# === Virtual environments ===
-.venv/
-venv/
-env/
+# Rust build output
+src-tauri/target/
 
-# === IDE ===
-.idea/
+# Release artifacts
+release/lingo-text-of-own/
+
+# Environment
+.env
+.env.local
+
+# IDE
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
 
-# === OS ===
+# macOS
 .DS_Store
-Thumbs.db
 
-# === Secrets & config ===
-config.json
-*.env
-
-# === Data files (user-specific, large) ===
-data/library/ao3/ao3_downloads/
-data/vocabulary_notebook/vocabulary.db
-data/vocabulary_notebook/*.db-journal
-
-# === URL collection progress files ===
-data/library/ao3/.urls_all_progress.json
-
-# === Keep the directory structure with .gitkeep ===
-!data/library/ao3/ao3_downloads/.gitkeep
-!data/vocabulary_notebook/.gitkeep
-
-# === Logs ===
+# Logs
 *.log
-
-# === Automator app (contains local paths & API keys) ===
-*.app
-
