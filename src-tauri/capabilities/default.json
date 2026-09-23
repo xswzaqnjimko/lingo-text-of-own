@@ -1,0 +1,13 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for Lingo Text",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "store:default",
+    "opener:default"
+  ]
+}
