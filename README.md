@@ -5,6 +5,7 @@ A desktop vocabulary learning app that picks random sentences from your local li
 ---
 
 v2.1.0 (2026-09-24): Draw sentences from a specific work by ID. Wordbook & Hall of Fame now paginated (50/page) with page-jump navigation, starts-with search with dropdown, per-word encounter history pagination (5/page), and scroll-to-top/bottom buttons. Local estimated API usage tracking (chars/month).
+
 v2.0.0 (2026-09-23): Rewritten as a native desktop app with Tauri v2 (React + Rust), replacing the v1.x Streamlit web app. Faster startup, offline-capable UI, persistent settings, and the same learning workflow. Minor UI and functionality improvements.
 
 ---
