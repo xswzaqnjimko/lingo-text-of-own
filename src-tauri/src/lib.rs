@@ -150,7 +150,68 @@ fn get_eligible_count(
     (eligible, total)
 }
 
+#[tauri::command]
+fn get_sentence_from_work(
+    work_id: String,
+    target_rels: Vec<String>,
+    random_any: bool,
+    state: tauri::State<AppState>,
+) -> Result<DrawFromWorkResult, String> {
+    let library = state.library.lock().unwrap();
 
+    if library.is_empty() {
+        return Err("文库为空，请先扫描文库".to_string());
+    }
+
+    // Find the work by ID
+    let found = library.iter().find(|(meta, _)| {
+        meta.work_id.as_deref() == Some(&work_id)
+    });
+
+    let (meta, sentences) = match found {
+        Some(entry) => entry,
+        None => return Err("work_not_found".to_string()),
+    };
+
+    if sentences.is_empty() {
+        return Err("这篇作品没有中文句子".to_string());
+    }
+
+    // Check relationship filter
+    let filter_note = if !random_any && !target_rels.is_empty() {
+        let has_match = meta.relationships.iter().any(|r| target_rels.contains(r));
+        if !has_match {
+            Some("work_filtered_out".to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // If filtered out, still return the note but no sentence
+    if filter_note.is_some() {
+        return Err("work_filtered_out".to_string());
+    }
+
+    // Pick a random sentence
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let sent_idx = rng.gen_range(0..sentences.len());
+
+    Ok(DrawFromWorkResult {
+        sentence: Sentence {
+            text: sentences[sent_idx].clone(),
+            work_id: meta.work_id.clone(),
+            work_title: meta.title.clone(),
+            relationships: meta.relationships.clone(),
+            published: meta.published.clone(),
+            updated: meta.updated.clone(),
+            series: meta.series.clone(),
+        },
+        filter_note: None,
+    })
+}
 
 // --- Translation ---
 
@@ -419,6 +480,7 @@ pub fn run() {
             get_library_stats,
             get_library_relationships,
             get_eligible_count,
+            get_sentence_from_work,
             // Translation
             translate_sentence,
             get_dictionary_links,

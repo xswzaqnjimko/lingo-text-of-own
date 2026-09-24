@@ -923,3 +923,158 @@ label {
 .parent-link:hover, .child-link:hover {
   background: var(--border);
 }
+
+/* === Pagination (v2.1) === */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font);
+}
+
+.page-btn:hover:not(.dots):not(:disabled) {
+  background: var(--bg);
+  border-color: var(--border-focus);
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.page-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+
+.page-btn.dots {
+  border: none;
+  background: none;
+  cursor: default;
+  color: var(--text-muted);
+  min-width: 24px;
+  padding: 0;
+}
+
+/* === Search (v2.1) === */
+.search-container {
+  margin-left: auto;
+}
+
+.search-input {
+  width: 180px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+}
+
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  margin-top: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.search-result-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.1s;
+}
+
+.search-result-item:hover:not(.no-results) {
+  background: var(--bg);
+}
+
+.search-result-item.no-results {
+  color: var(--text-muted);
+  cursor: default;
+  font-size: 12px;
+}
+
+.search-result-word {
+  font-weight: 500;
+}
+
+.search-result-lang {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 1px 6px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+/* === Scroll Buttons (v2.1) === */
+.scroll-buttons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+}
+
+.scroll-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: all 0.15s;
+}
+
+.scroll-btn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* === Highlight Animation (v2.1) === */
+.vocab-item.highlighted,
+.hof-item.highlighted {
+  animation: highlight-flash 1.5s ease-out;
+}
+
+@keyframes highlight-flash {
+  0% { box-shadow: 0 0 0 3px var(--accent); }
+  100% { box-shadow: var(--shadow); }
+}

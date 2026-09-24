@@ -34,6 +34,11 @@ export async function getEligibleCount(targetRels, randomAny) {
   return invoke("get_eligible_count", { targetRels, randomAny });
 }
 
+export async function getSentenceFromWork(workId, targetRels, randomAny) {
+  return invoke("get_sentence_from_work", { workId, targetRels, randomAny });
+}
+
+
 
 // === Translation ===
 

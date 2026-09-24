@@ -12,6 +12,7 @@ import {
   getLibraryStats,
   logWordAdded,
   getApiUsage,
+  getSentenceFromWork,
 } from "../services/database";
 
 export default function SentenceView({
@@ -29,6 +30,7 @@ export default function SentenceView({
 }) {
   const [loading, setLoading] = useState(false);
   const [wordInputs, setWordInputs] = useState({});
+  const [workIdInput, setWorkIdInput] = useState("");
 
   const { selectedLangs, showComparison, googleApiKey, deeplApiKey, targetRelationships } = settings;
 
@@ -107,6 +109,79 @@ export default function SentenceView({
     }
   }, [selectedLangs, showComparison, googleApiKey, deeplApiKey, targetRelationships, lang, showToast]);
 
+  // Draw a sentence from a specific work by ID
+  const drawFromWork = useCallback(async () => {
+    const wid = workIdInput.trim();
+    if (!wid) return;
+    setLoading(true);
+    setTranslations(null);
+    setDictLinks({});
+    setWordInputs({});
+
+    try {
+      const result = await getSentenceFromWork(
+        wid,
+        targetRelationships || [],
+        !targetRelationships || targetRelationships.length === 0
+      );
+      // result has sentence fields flattened + filter_note
+      const sent = {
+        text: result.text,
+        work_id: result.work_id,
+        work_title: result.work_title,
+        relationships: result.relationships,
+        published: result.published,
+        updated: result.updated,
+        series: result.series,
+      };
+      setSentence(sent);
+
+      if (selectedLangs.length > 0) {
+        logSentenceViewed(selectedLangs[0]).catch(console.error);
+      }
+
+      const trans = await translateSentence(
+        sent.text,
+        selectedLangs,
+        googleApiKey || "",
+        deeplApiKey || ""
+      );
+      setTranslations(trans);
+
+      const links = {};
+      for (const langCode of selectedLangs) {
+        if (trans[langCode]) {
+          try {
+            const [gLinks, dLinks] = await getDictionaryLinks(
+              trans[langCode].google || "",
+              trans[langCode].deepl || "",
+              langCode
+            );
+            links[langCode] = { google: gLinks, deepl: dLinks };
+          } catch (e) {
+            console.error("Dict links error:", e);
+          }
+        }
+      }
+      setDictLinks(links);
+    } catch (e) {
+      const errStr = String(e);
+      if (errStr.includes("work_not_found")) {
+        showToast(t("work_not_found", lang));
+      } else if (errStr.includes("work_filtered_out")) {
+        showToast(t("work_filtered_out", lang));
+      } else {
+        showToast(t("error_api", lang) + errStr);
+      }
+      setSentence(null);
+    } finally {
+      setLoading(false);
+      getApiUsage().then(setApiUsage).catch(console.error);
+    }
+  }, [workIdInput, selectedLangs, showComparison, googleApiKey, deeplApiKey, targetRelationships, lang, showToast]);
+
+
+
   // Add word to vocabulary
   const handleAddWord = useCallback(
     async (langCode) => {
@@ -182,15 +257,39 @@ export default function SentenceView({
         </p>
       )}
 
-      {/* Draw Button */}
-      <button
-        className="btn btn-primary btn-lg"
-        onClick={drawSentence}
-        disabled={loading}
-        style={{ marginBottom: 20 }}
-      >
-        {loading ? "..." : t("draw_sentence", lang)}
-      </button>
+      {/* Draw Buttons */}
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
+        <button
+          className="btn btn-primary btn-lg"
+          onClick={drawSentence}
+          disabled={loading}
+        >
+          {loading ? "..." : t("draw_sentence", lang)}
+        </button>
+
+        {settings.enableAo3 && (
+          <div style={{ display: "flex", gap: 6, alignItems: "center", marginLeft: "auto" }}>
+            <span style={{ fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+              {t("draw_from_work", lang)}
+            </span>
+            <input
+              type="text"
+              placeholder={t("work_id_placeholder", lang)}
+              value={workIdInput}
+              onChange={(e) => setWorkIdInput(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => { if (e.key === "Enter") drawFromWork(); }}
+              style={{ width: 130 }}
+            />
+            <button
+              className="btn btn-primary"
+              onClick={drawFromWork}
+              disabled={loading || !workIdInput.trim()}
+            >
+              {loading ? "..." : t("draw_from_work_btn", lang)}
+            </button>
+          </div>
+        )}
+      </div>
 
       {sentence && (
         <>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { t } from "../services/i18n";
 import {
   getHallOfFameList,
@@ -6,15 +6,101 @@ import {
   logWordReviewed,
 } from "../services/database";
 
+const ITEMS_PER_PAGE = 50;
+const SEARCH_MAX_DROPDOWN = 8;
+
+// --- Pagination Component ---
+function Pagination({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="pagination">
+      <button
+        className="page-btn"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        ‹
+      </button>
+      {getPageNumbers().map((p, i) =>
+        p === "..." ? (
+          <span key={`dots-${i}`} className="page-btn dots">…</span>
+        ) : (
+          <button
+            key={p}
+            className={`page-btn${p === currentPage ? " active" : ""}`}
+            onClick={() => onPageChange(p)}
+          >
+            {p}
+          </button>
+        )
+      )}
+      <button
+        className="page-btn"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
+// --- Scroll Buttons ---
+function ScrollButtons() {
+  const scrollTo = (position) => {
+    const el = document.querySelector(".main-content");
+    if (el) {
+      if (position === "top") el.scrollTo({ top: 0, behavior: "smooth" });
+      else el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+  };
+  return (
+    <div className="scroll-buttons">
+      <button className="scroll-btn" onClick={() => scrollTo("top")} title="Top">↑</button>
+      <button className="scroll-btn" onClick={() => scrollTo("bottom")} title="Bottom">↓</button>
+    </div>
+  );
+}
+
 export default function HallOfFame({ lang, supportedLangs, onRefreshStats, showToast }) {
   const [entries, setEntries] = useState([]);
   const [filterLang, setFilterLang] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Search
+  const [searchText, setSearchText] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Highlighted entry (from search click)
+  const [highlightedId, setHighlightedId] = useState(null);
+
   const loadEntries = useCallback(async () => {
     try {
-      const list = await getHallOfFameList(filterLang, 500);
+      const list = await getHallOfFameList(filterLang, 10000);
       setEntries(list);
+      setCurrentPage(1);
     } catch (e) {
       console.error("Failed to load hall of fame:", e);
     }
@@ -38,12 +124,65 @@ export default function HallOfFame({ lang, supportedLangs, onRefreshStats, showT
 
   const availLangs = [...new Set(entries.map((e) => e.lang))];
 
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(entries.length / ITEMS_PER_PAGE));
+  const pagedEntries = entries.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [totalPages, currentPage]);
+
+  // Search
+  const searchResults = useMemo(() => {
+    if (!searchText.trim()) return [];
+    const q = searchText.trim().toLowerCase();
+    return entries.filter((e) => e.word.toLowerCase().startsWith(q));
+  }, [searchText, entries]);
+
+  const jumpToEntry = useCallback(
+    (entryId) => {
+      const idx = entries.findIndex((e) => e.id === entryId);
+      if (idx < 0) return;
+      const page = Math.floor(idx / ITEMS_PER_PAGE) + 1;
+      setCurrentPage(page);
+      setExpandedId(entryId);
+      setSearchText("");
+      setSearchFocused(false);
+      setHighlightedId(entryId);
+      setTimeout(() => {
+        const el = document.getElementById(`hof-item-${entryId}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+      setTimeout(() => setHighlightedId(null), 1500);
+    },
+    [entries]
+  );
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(e.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   return (
     <div>
       <h1 className="page-title">{t("title_hall", lang)}</h1>
       <p className="page-subtitle">{t("subtitle_hall", lang)}</p>
 
-      {/* Language filter */}
+      {/* Toolbar */}
       <div className="vocab-toolbar">
         <select
           value={filterLang || ""}
@@ -59,30 +198,80 @@ export default function HallOfFame({ lang, supportedLangs, onRefreshStats, showT
         <span className="vocab-count">
           {t("total_words", lang, entries.length)}
         </span>
+
+        {/* Search box */}
+        <div className="search-container" style={{ position: "relative" }}>
+          <input
+            ref={searchRef}
+            type="text"
+            className="search-input"
+            placeholder={t("search_placeholder", lang)}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+          />
+          {searchFocused && searchText.trim() && (
+            <div className="search-dropdown" ref={dropdownRef}>
+              {searchResults.length === 0 ? (
+                <div className="search-result-item no-results">
+                  {t("search_no_results", lang)}
+                </div>
+              ) : (
+                <>
+                  {searchResults.slice(0, SEARCH_MAX_DROPDOWN).map((e) => (
+                    <div
+                      key={e.id}
+                      className="search-result-item"
+                      onMouseDown={() => jumpToEntry(e.id)}
+                    >
+                      <span className="search-result-word">{e.word}</span>
+                      <span className="search-result-lang">{e.lang}</span>
+                    </div>
+                  ))}
+                  {searchResults.length > SEARCH_MAX_DROPDOWN && (
+                    <div className="search-result-item no-results">
+                      {t("search_more", lang, searchResults.length - SEARCH_MAX_DROPDOWN)}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {entries.length === 0 ? (
         <div className="empty-state">{t("no_hall_words", lang)}</div>
       ) : (
-        entries.map((entry) => (
-          <HofItem
-            key={entry.id}
-            entry={entry}
-            expanded={expandedId === entry.id}
-            onToggle={() =>
-              setExpandedId((prev) => (prev === entry.id ? null : entry.id))
-            }
-            onDemote={() => handleDemote(entry.id, entry.lang)}
-            lang={lang}
-            supportedLangs={supportedLangs}
+        <>
+          {pagedEntries.map((entry) => (
+            <HofItem
+              key={entry.id}
+              entry={entry}
+              expanded={expandedId === entry.id}
+              highlighted={highlightedId === entry.id}
+              onToggle={() =>
+                setExpandedId((prev) => (prev === entry.id ? null : entry.id))
+              }
+              onDemote={() => handleDemote(entry.id, entry.lang)}
+              lang={lang}
+              supportedLangs={supportedLangs}
+            />
+          ))}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
           />
-        ))
+        </>
       )}
+
+      <ScrollButtons />
     </div>
   );
 }
 
-function HofItem({ entry, expanded, onToggle, onDemote, lang, supportedLangs }) {
+function HofItem({ entry, expanded, highlighted, onToggle, onDemote, lang, supportedLangs }) {
   const langName = supportedLangs.find(([c]) => c === entry.lang)?.[1] || entry.lang;
 
   // Parse encounter data JSON
@@ -96,7 +285,10 @@ function HofItem({ entry, expanded, onToggle, onDemote, lang, supportedLangs }) 
   } catch (_) {}
 
   return (
-    <div className="hof-item">
+    <div
+      id={`hof-item-${entry.id}`}
+      className={`hof-item${highlighted ? " highlighted" : ""}`}
+    >
       <div
         style={{ display: "flex", alignItems: "center", cursor: "pointer" }}
         onClick={onToggle}

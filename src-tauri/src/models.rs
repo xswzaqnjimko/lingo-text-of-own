@@ -213,3 +213,11 @@ pub struct ApiUsage {
     pub deepl_chars: i64,
     pub month_label: String,
 }
+
+/// Result of drawing a sentence from a specific work by ID
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DrawFromWorkResult {
+    #[serde(flatten)]
+    pub sentence: Sentence,
+    pub filter_note: Option<String>,
+}

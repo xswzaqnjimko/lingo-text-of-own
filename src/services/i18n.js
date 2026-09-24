@@ -158,6 +158,29 @@ const UI_TEXTS = {
     // Errors
     error_api: "API 调用失败：",
     error_no_library: "请先在设置中配置文库路径",
+
+    // Draw from specific work (v2.1)
+    draw_from_work: "抽一句 - 来自特定篇目：",
+    work_id_placeholder: "AO3 work ID",
+    draw_from_work_btn: "🎲 抽",
+    work_not_found: "文库中未找到此 work ID 的作品",
+    work_filtered_out: "此作品不满足当前 relationship 筛选条件",
+
+    // Pagination (v2.1)
+    page_label: "第 {0} / {1} 页",
+    page_jump: "跳至",
+
+    // Search (v2.1)
+    search_placeholder: "搜索词条...",
+    search_no_results: "无匹配结果",
+    search_more: "还有 {0} 个结果...",
+
+    // Scroll buttons (v2.1)
+    scroll_top: "↑ 顶部",
+    scroll_bottom: "↓ 底部",
+
+    // Encounter pagination (v2.1)
+    encounter_page: "遭遇记录 第 {0} / {1} 页",
   },
 
   en: {
@@ -302,6 +325,29 @@ const UI_TEXTS = {
 
     error_api: "API call failed:",
     error_no_library: "Please set library path in Settings first",
+
+    // Draw from specific work (v2.1)
+    draw_from_work: "Draw from specific work:",
+    work_id_placeholder: "AO3 work ID",
+    draw_from_work_btn: "🎲 Draw",
+    work_not_found: "Work ID not found in library",
+    work_filtered_out: "This work does not match current relationship filter",
+
+    // Pagination (v2.1)
+    page_label: "Page {0} / {1}",
+    page_jump: "Go to",
+
+    // Search (v2.1)
+    search_placeholder: "Search words...",
+    search_no_results: "No matching results",
+    search_more: "{0} more results...",
+
+    // Scroll buttons (v2.1)
+    scroll_top: "↑ Top",
+    scroll_bottom: "↓ Bottom",
+
+    // Encounter pagination (v2.1)
+    encounter_page: "Encounters page {0} / {1}",
   },
 };
 
