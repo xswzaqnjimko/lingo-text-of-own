@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { t } from "../services/i18n";
 import {
@@ -27,6 +27,7 @@ export default function SentenceView({
   setTranslations,
   dictLinks,
   setDictLinks,
+  isActive,
 }) {
   const [loading, setLoading] = useState(false);
   const [wordInputs, setWordInputs] = useState({});
@@ -54,6 +55,24 @@ export default function SentenceView({
       .then(setApiUsage)
       .catch(console.error);
   }, [targetRelationships]);
+
+  // Re-fetch pool info when page becomes active (tab switch back)
+  const prevActiveRef = useRef(isActive);
+  useEffect(() => {
+    if (isActive && !prevActiveRef.current) {
+      const randomAny = !targetRelationships || targetRelationships.length === 0;
+      Promise.all([
+        getEligibleCount(targetRelationships || [], randomAny),
+        getLibraryStats(),
+      ])
+        .then(([[eligible, total], stats]) =>
+          setPoolInfo({ eligible, total, totalSentences: stats.total_sentences })
+        )
+        .catch(console.error);
+      getApiUsage().then(setApiUsage).catch(console.error);
+    }
+    prevActiveRef.current = isActive;
+  }, [isActive, targetRelationships]);
 
   // Draw a random sentence
   const drawSentence = useCallback(async () => {

@@ -197,6 +197,7 @@ export default function App() {
               setTranslations={setTranslations}
               dictLinks={dictLinks}
               setDictLinks={setDictLinks}
+              isActive={page === "home"}
             />
           </div>
         )}
