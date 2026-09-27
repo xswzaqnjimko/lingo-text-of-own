@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { t } from "../services/i18n";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   getHallOfFameList,
   demoteFromHallOfFame,
   logWordReviewed,
+  getWordDictUrl,
 } from "../services/database";
 
 const ITEMS_PER_PAGE = 50;
@@ -320,6 +322,18 @@ function HofItem({ entry, expanded, highlighted, onToggle, onDemote, lang, suppo
           ▶
         </span>
         <span className="hof-word">{entry.word}</span>
+        <button
+          className="dict-chip"
+          style={{ marginLeft: 6, fontSize: 12 }}
+          onClick={async (e) => {
+            e.stopPropagation();
+            const url = await getWordDictUrl(entry.word, entry.lang);
+            if (url) openUrl(url);
+          }}
+          title={t("dict_link", lang)}
+        >
+          🔗
+        </button>
         <span className="vocab-lang-badge" style={{ marginLeft: 10 }}>
           {langName}
         </span>

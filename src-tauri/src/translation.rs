@@ -251,6 +251,13 @@ pub fn generate_dictionary_links(
     (google_chips, deepl_extra)
 }
 
+
+/// Get dictionary URL for a single word
+pub fn get_word_dictionary_url(word: &str, lang_code: &str) -> Option<String> {
+    let config = get_lang_config(lang_code)?;
+    Some(format!("{}{}", config.dict_url, urlencoding::encode(&word.to_lowercase())))
+}
+
 /// Generate TTS link
 pub fn get_tts_link(text: &str, lang_code: &str, engine: &str) -> Option<String> {
     let config = get_lang_config(lang_code)?;

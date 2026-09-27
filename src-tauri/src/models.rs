@@ -107,6 +107,7 @@ pub struct DailyActivity {
     pub words_reviewed: i64,
     pub words_graduated: i64,
     pub langs_used: String,
+    pub fillblanks_played: i64,
 }
 
 /// Activity summary over a period
@@ -118,6 +119,7 @@ pub struct ActivitySummary {
     pub words_added: i64,
     pub words_reviewed: i64,
     pub words_graduated: i64,
+    pub fillblanks_played: i64,
 }
 
 /// Vocabulary stats for sidebar

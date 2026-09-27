@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { t } from "../services/i18n";
 import { getActivityHistory, getActivitySummary } from "../services/database";
 
@@ -8,7 +8,7 @@ const RANGES = [
   { key: 365, label: "range_365" },
 ];
 
-export default function Activity({ lang }) {
+export default function Activity({ lang, isActive }) {
   const [range, setRange] = useState(7);
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
@@ -30,6 +30,15 @@ export default function Activity({ lang }) {
     loadData();
   }, [loadData]);
 
+  // Re-fetch when page becomes active (tab switch back)
+  const prevActiveRef = useRef(isActive);
+  useEffect(() => {
+    if (isActive && !prevActiveRef.current) {
+      loadData();
+    }
+    prevActiveRef.current = isActive;
+  }, [isActive, loadData]);
+
   // Fill in all days in the range (so empty days show as gaps in the chart)
   // Only fill gaps for short ranges (≤30 days); longer ranges just show active days
   const filledHistory = React.useMemo(() => {
@@ -41,7 +50,7 @@ export default function Activity({ lang }) {
     const minDay = Math.max(1, maxDay - range + 1);
     const filled = [];
     for (let day = minDay; day <= maxDay; day++) {
-      filled.push(byDay[day] || { day, sentences_viewed: 0, words_added: 0, words_reviewed: 0, words_graduated: 0, langs_used: "" });
+      filled.push(byDay[day] || { day, sentences_viewed: 0, words_added: 0, words_reviewed: 0, words_graduated: 0, fillblanks_played: 0, langs_used: "" });
     }
     return filled;
   }, [history, range]);
@@ -50,7 +59,7 @@ export default function Activity({ lang }) {
   const maxVal = Math.max(
     1,
     ...filledHistory.map((d) =>
-      Math.max(d.sentences_viewed, d.words_added, d.words_reviewed)
+      Math.max(d.sentences_viewed, d.words_added, d.words_reviewed, d.fillblanks_played)
     )
   );
 
@@ -90,6 +99,10 @@ export default function Activity({ lang }) {
             <div className="summary-value">{summary.words_reviewed}</div>
             <div className="summary-label">{t("review_count", lang)}</div>
           </div>
+          <div className="summary-card">
+            <div className="summary-value">{summary.fillblanks_played}</div>
+            <div className="summary-label">{t("fillblanks_played", lang)}</div>
+          </div>
         </div>
       )}
 
@@ -107,6 +120,7 @@ export default function Activity({ lang }) {
               const sH = (day.sentences_viewed / maxVal) * 100;
               const wH = (day.words_added / maxVal) * 100;
               const rH = (day.words_reviewed / maxVal) * 100;
+              const fH = ((day.fillblanks_played || 0) / maxVal) * 100;
 
               // Show day label for every Nth bar depending on range
               const step = range <= 7 ? 1 : range <= 30 ? 5 : Math.max(1, Math.floor(filledHistory.length / 10));
@@ -116,7 +130,7 @@ export default function Activity({ lang }) {
                 <div
                   className="chart-bar-group"
                   key={day.day}
-                  title={`Day ${day.day}: ${day.sentences_viewed}s / ${day.words_added}w / ${day.words_reviewed}r`}
+                  title={`Day ${day.day}: ${day.sentences_viewed}s / ${day.words_added}w / ${day.words_reviewed}r / ${day.fillblanks_played || 0}f`}
                 >
                   <div style={{ display: "flex", gap: 1, alignItems: "flex-end", height: "100%" }}>
                     <div
@@ -130,6 +144,10 @@ export default function Activity({ lang }) {
                     <div
                       className="chart-bar reviews"
                       style={{ height: `${Math.max(rH, day.words_reviewed > 0 ? 3 : 0)}%` }}
+                    />
+                    <div
+                      className="chart-bar fillblanks"
+                      style={{ height: `${Math.max(fH, (day.fillblanks_played || 0) > 0 ? 3 : 0)}%` }}
                     />
                   </div>
                   <div className="chart-bar-label" style={showLabel ? {} : { visibility: "hidden" }}>{day.day}</div>
@@ -151,6 +169,10 @@ export default function Activity({ lang }) {
             <span>
               <span className="chart-legend-dot" style={{ background: "#fbbf24" }} />
               {t("review_count", lang)}
+            </span>
+            <span>
+              <span className="chart-legend-dot" style={{ background: "#f9a8d4" }} />
+              {t("fillblanks_played", lang)}
             </span>
           </div>
         </div>

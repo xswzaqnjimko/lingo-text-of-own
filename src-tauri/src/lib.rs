@@ -250,6 +250,12 @@ fn get_tts_link(text: String, lang_code: String, engine: String) -> Option<Strin
     translation::get_tts_link(&text, &lang_code, &engine)
 }
 
+
+#[tauri::command]
+fn get_word_dict_url(word: String, lang_code: String) -> Option<String> {
+    translation::get_word_dictionary_url(&word, &lang_code)
+}
+
 // --- Vocabulary ---
 
 #[tauri::command]
@@ -511,6 +517,7 @@ pub fn run() {
             translate_sentence,
             get_dictionary_links,
             get_tts_link,
+            get_word_dict_url,
             // Vocabulary
             get_stats,
             add_word,

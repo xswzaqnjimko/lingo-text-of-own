@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { t } from "../services/i18n";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   getVocabularyList,
   getWordEncounters,
@@ -14,6 +15,7 @@ import {
   setParent,
   addWordManual,
   logWordReviewed,
+  getWordDictUrl,
 } from "../services/database";
 
 const SORT_OPTIONS = [
@@ -498,7 +500,21 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
           {/* Meta info */}
           <dl className="vocab-meta">
             <dt>{t("word_entry", lang)}</dt>
-            <dd>{word.word}</dd>
+            <dd>
+              {word.word}
+              <button
+                className="dict-chip"
+                style={{ marginLeft: 8, fontSize: 12 }}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const url = await getWordDictUrl(word.word, word.lang);
+                  if (url) openUrl(url);
+                }}
+                title={t("dict_link", lang)}
+              >
+                🔗
+              </button>
+            </dd>
             <dt>{t("language_label", lang)}</dt>
             <dd>{langName}</dd>
             <dt>{t("first_seen", lang)}</dt>

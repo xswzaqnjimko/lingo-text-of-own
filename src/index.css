@@ -679,6 +679,7 @@ label {
 .chart-bar.sentences { background: #93c5fd; }
 .chart-bar.words { background: #86efac; }
 .chart-bar.reviews { background: #fbbf24; }
+.chart-bar.fillblanks { background: #f9a8d4; }
 
 .chart-bar-label {
   font-size: 9px;

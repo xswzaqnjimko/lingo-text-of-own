@@ -80,7 +80,8 @@ pub fn init_db(conn: &Connection) -> SqlResult<()> {
             words_added      INTEGER DEFAULT 0,
             words_reviewed   INTEGER DEFAULT 0,
             words_graduated  INTEGER DEFAULT 0,
-            langs_used       TEXT DEFAULT ''
+            langs_used       TEXT DEFAULT '',
+            fillblanks_played INTEGER DEFAULT 0
         );
 
         CREATE INDEX IF NOT EXISTS idx_vocab_lang ON vocabulary(lang);
@@ -177,6 +178,32 @@ pub fn init_db(conn: &Connection) -> SqlResult<()> {
         // 4) Update schema_version to 2.2
         conn.execute(
             "UPDATE metadata SET value = '2.2' WHERE key = 'schema_version'",
+            [],
+        )?;
+    }
+
+
+    // --- v2.3 Migration: fillblanks_played column ---
+    let schema_version_2: String = conn
+        .query_row(
+            "SELECT value FROM metadata WHERE key = 'schema_version'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_else(|_| "2.0".to_string());
+
+    if schema_version_2.as_str() < "2.3" {
+        let has_fillblanks: bool = conn
+            .prepare("SELECT COUNT(*) FROM pragma_table_info('daily_activity') WHERE name='fillblanks_played'")
+            .and_then(|mut s| s.query_row([], |r| r.get(0)))
+            .unwrap_or(false);
+
+        if !has_fillblanks {
+            conn.execute_batch("ALTER TABLE daily_activity ADD COLUMN fillblanks_played INTEGER DEFAULT 0;")?;
+        }
+
+        conn.execute(
+            "UPDATE metadata SET value = '2.3' WHERE key = 'schema_version'",
             [],
         )?;
     }
@@ -1168,6 +1195,14 @@ pub fn submit_fill_blank_answer(
         }
     }
 
+    // Log fill-blank play to activity
+    let fb_lang: String = conn
+        .query_row("SELECT lang FROM vocabulary WHERE id = ?1", params![correct_word_id], |row| row.get(0))
+        .unwrap_or_default();
+    if !fb_lang.is_empty() {
+        log_fillblank_played(conn, &fb_lang);
+    }
+
     let correct_word = get_word_name(conn, correct_word_id);
     let chosen_word = get_word_name(conn, chosen_word_id);
 
@@ -1279,6 +1314,18 @@ pub fn log_word_graduated(conn: &Connection, lang: &str) {
     update_langs_used(conn, day, lang);
 }
 
+
+pub fn log_fillblank_played(conn: &Connection, lang: &str) {
+    let day = get_current_day(conn);
+    ensure_activity_row(conn, day);
+    conn.execute(
+        "UPDATE daily_activity SET fillblanks_played = fillblanks_played + 1 WHERE day = ?1",
+        params![day],
+    )
+    .ok();
+    update_langs_used(conn, day, lang);
+}
+
 /// Get activity history for the last N days
 pub fn get_activity_history(conn: &Connection, days: i64) -> Vec<DailyActivity> {
     let current_day = get_current_day(conn);
@@ -1286,7 +1333,7 @@ pub fn get_activity_history(conn: &Connection, days: i64) -> Vec<DailyActivity> 
     let mut activities = Vec::new();
 
     if let Ok(mut stmt) = conn.prepare(
-        "SELECT day, sentences_viewed, words_added, words_reviewed, words_graduated, langs_used FROM daily_activity WHERE day >= ?1 AND day <= ?2 ORDER BY day",
+        "SELECT day, sentences_viewed, words_added, words_reviewed, words_graduated, langs_used, fillblanks_played FROM daily_activity WHERE day >= ?1 AND day <= ?2 ORDER BY day",
     ) {
         if let Ok(rows) = stmt.query_map(params![start_day, current_day], |row| {
             Ok(DailyActivity {
@@ -1296,6 +1343,7 @@ pub fn get_activity_history(conn: &Connection, days: i64) -> Vec<DailyActivity> 
                 words_reviewed: row.get(3)?,
                 words_graduated: row.get(4)?,
                 langs_used: row.get(5)?,
+                fillblanks_played: row.get(6)?,
             })
         }) {
             for row in rows.flatten() {
@@ -1313,7 +1361,7 @@ pub fn get_activity_summary(conn: &Connection, days: i64) -> ActivitySummary {
     let start_day = current_day - days;
 
     let result = conn.query_row(
-        "SELECT COUNT(*), COALESCE(SUM(sentences_viewed), 0), COALESCE(SUM(words_added), 0), COALESCE(SUM(words_reviewed), 0), COALESCE(SUM(words_graduated), 0) FROM daily_activity WHERE day >= ?1 AND day <= ?2 AND (sentences_viewed > 0 OR words_added > 0 OR words_reviewed > 0 OR words_graduated > 0)",
+        "SELECT COUNT(*), COALESCE(SUM(sentences_viewed), 0), COALESCE(SUM(words_added), 0), COALESCE(SUM(words_reviewed), 0), COALESCE(SUM(words_graduated), 0), COALESCE(SUM(fillblanks_played), 0) FROM daily_activity WHERE day >= ?1 AND day <= ?2 AND (sentences_viewed > 0 OR words_added > 0 OR words_reviewed > 0 OR words_graduated > 0 OR fillblanks_played > 0)",
         params![start_day, current_day],
         |row| {
             Ok(ActivitySummary {
@@ -1323,6 +1371,7 @@ pub fn get_activity_summary(conn: &Connection, days: i64) -> ActivitySummary {
                 words_added: row.get(2)?,
                 words_reviewed: row.get(3)?,
                 words_graduated: row.get(4)?,
+                fillblanks_played: row.get(5)?,
             })
         },
     );
@@ -1334,6 +1383,7 @@ pub fn get_activity_summary(conn: &Connection, days: i64) -> ActivitySummary {
         words_added: 0,
         words_reviewed: 0,
         words_graduated: 0,
+        fillblanks_played: 0,
     })
 }
 

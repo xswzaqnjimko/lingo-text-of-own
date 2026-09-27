@@ -4,7 +4,7 @@ A desktop vocabulary learning app that picks random sentences from your local li
 
 ---
 
-v2.2.0 (2026-09-27): Fill-in-the-blank quiz page with crit system. Word highlighting in encounter sentences. Hall of Fame encounter display now shows all translations. Page state preserved across tab switches. 使用说明 (manual) modal with usage guide. Jump-to-page-1 buttons. Encounter history expanded by default.
+v2.2.0 (2026-09-27): Fill-in-the-blank quiz page with crit system. Word highlighting in encounter sentences. Hall of Fame encounter display now shows all translations. Page state preserved across tab switches. 使用说明 (manual) modal with usage guide. Jump-to-page-1 buttons. Encounter history expanded by default. Dictionary link in word records.
 
 v2.1.0 (2026-09-24): Draw sentences from a specific work by ID. Wordbook & Hall of Fame now paginated (50/page) with page-jump navigation, starts-with search with dropdown, per-word encounter history pagination (5/page), and scroll-to-top/bottom buttons. Local estimated API usage tracking (chars/month).
 

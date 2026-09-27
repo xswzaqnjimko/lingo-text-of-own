@@ -238,7 +238,7 @@ export default function App() {
         )}
         {visited.has("activity") && (
           <div style={{ display: page === "activity" ? undefined : "none" }}>
-            <Activity lang={lang} />
+            <Activity lang={lang} isActive={page === "activity"} />
           </div>
         )}
         {visited.has("settings") && (

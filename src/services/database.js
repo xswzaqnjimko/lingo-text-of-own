@@ -50,6 +50,11 @@ export async function getDictionaryLinks(googleText, deeplText, langCode) {
   return invoke("get_dictionary_links", { googleText, deeplText, langCode });
 }
 
+
+export async function getWordDictUrl(word, langCode) {
+  return invoke("get_word_dict_url", { word, langCode });
+}
+
 export async function getTtsLink(text, langCode, engine) {
   return invoke("get_tts_link", { text, langCode, engine });
 }

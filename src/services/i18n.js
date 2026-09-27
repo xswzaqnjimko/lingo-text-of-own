@@ -101,6 +101,7 @@ const UI_TEXTS = {
     sentences_translated: "翻译句数",
     new_words: "新词",
     review_count: "复习次数",
+    fillblanks_played: "填空次数",
 
     // Management
     management_tools: "🛠️ 生词本管理工具",
@@ -317,6 +318,7 @@ const UI_TEXTS = {
     sentences_translated: "Sentences",
     new_words: "New Words",
     review_count: "Reviews",
+    fillblanks_played: "Fill-Blanks",
 
     management_tools: "🛠️ Vocabulary Management",
     quick_add: "Quick Add (No Context)",
