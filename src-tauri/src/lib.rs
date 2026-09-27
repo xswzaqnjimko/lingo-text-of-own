@@ -335,7 +335,7 @@ fn decrease_hp(vocab_id: i64, state: tauri::State<AppState>) -> HpChangeResult {
 }
 
 #[tauri::command]
-fn increase_hp(vocab_id: i64, state: tauri::State<AppState>) -> (bool, String) {
+fn increase_hp(vocab_id: i64, state: tauri::State<AppState>) -> HpChangeResult {
     let conn = state.db.lock().unwrap();
     database::increase_hp(&conn, vocab_id)
 }
@@ -372,6 +372,32 @@ fn set_parent(
 ) -> (bool, String) {
     let conn = state.db.lock().unwrap();
     database::set_parent(&conn, child_id, parent_id)
+}
+
+// --- Fill-in-the-blank ---
+
+#[tauri::command]
+fn get_fill_blank_eligible_langs(state: tauri::State<AppState>) -> Vec<(String, i64)> {
+    let conn = state.db.lock().unwrap();
+    database::get_fill_blank_eligible_langs(&conn)
+}
+
+#[tauri::command]
+fn get_fill_blank_question(lang: String, state: tauri::State<AppState>) -> Result<FillBlankQuestion, String> {
+    let conn = state.db.lock().unwrap();
+    database::get_fill_blank_question(&conn, &lang)
+}
+
+#[tauri::command]
+fn submit_fill_blank_answer(
+    correct_word_id: i64,
+    chosen_word_id: i64,
+    all_choice_ids: Vec<i64>,
+    no_helper: bool,
+    state: tauri::State<AppState>,
+) -> FillBlankAnswer {
+    let conn = state.db.lock().unwrap();
+    database::submit_fill_blank_answer(&conn, correct_word_id, chosen_word_id, all_choice_ids, no_helper)
 }
 
 // --- Hall of Fame ---
@@ -500,6 +526,10 @@ pub fn run() {
             search_word,
             update_note,
             set_parent,
+            // Fill-in-the-blank
+            get_fill_blank_eligible_langs,
+            get_fill_blank_question,
+            submit_fill_blank_answer,
             // Hall of Fame
             get_hall_of_fame_list,
             demote_from_hall_of_fame,

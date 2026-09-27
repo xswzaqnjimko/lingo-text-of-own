@@ -27,7 +27,7 @@ pub fn init_db(conn: &Connection) -> SqlResult<()> {
             first_seen_day     INTEGER NOT NULL,
             encounter_count    INTEGER DEFAULT 1,
             last_encounter_day INTEGER NOT NULL,
-            stat_hp            INTEGER DEFAULT 3,
+            stat_hp            INTEGER DEFAULT 30,
             stat_atk           REAL,
             stat_def           REAL,
             stat_res           REAL,
@@ -105,6 +105,80 @@ pub fn init_db(conn: &Connection) -> SqlResult<()> {
 
     if has_mdef {
         conn.execute_batch("ALTER TABLE vocabulary RENAME COLUMN stat_mdef TO stat_res;")?;
+    }
+
+    // --- v2.2 Migration: HP×10, crit_evasion column, encounter data cleanup ---
+    let schema_version: String = conn
+        .query_row(
+            "SELECT value FROM metadata WHERE key = 'schema_version'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or_else(|_| "2.0".to_string());
+
+    if schema_version.as_str() < "2.2" {
+        // 1) HP×10: multiply all existing stat_hp values by 10
+        conn.execute_batch("UPDATE vocabulary SET stat_hp = stat_hp * 10;")?;
+
+        // 2) Add crit_evasion column
+        let has_crit_evasion: bool = conn
+            .prepare("SELECT COUNT(*) FROM pragma_table_info('vocabulary') WHERE name='crit_evasion'")
+            .and_then(|mut s| s.query_row([], |r| r.get(0)))
+            .unwrap_or(false);
+
+        if !has_crit_evasion {
+            conn.execute_batch("ALTER TABLE vocabulary ADD COLUMN crit_evasion REAL DEFAULT 0;")?;
+        }
+
+        // 3) Encounter data cleanup: NULL out translation pairs where the word doesn't appear
+        {
+            let mut enc_stmt = conn.prepare(
+                "SELECT e.id, e.sentence_target_google, e.sentence_target_deepl, v.word_lower
+                 FROM encounters e JOIN vocabulary v ON e.vocab_id = v.id"
+            )?;
+
+            let updates: Vec<(i64, bool, bool)> = enc_stmt
+                .query_map([], |row| {
+                    let enc_id: i64 = row.get(0)?;
+                    let target_google: Option<String> = row.get(1)?;
+                    let target_deepl: Option<String> = row.get(2)?;
+                    let word_lower: String = row.get(3)?;
+
+                    let google_has_word = target_google
+                        .as_ref()
+                        .map(|s| s.to_lowercase().contains(&word_lower))
+                        .unwrap_or(false);
+                    let deepl_has_word = target_deepl
+                        .as_ref()
+                        .map(|s| s.to_lowercase().contains(&word_lower))
+                        .unwrap_or(false);
+
+                    Ok((enc_id, google_has_word, deepl_has_word))
+                })?
+                .flatten()
+                .collect();
+
+            for (enc_id, google_ok, deepl_ok) in &updates {
+                if !google_ok {
+                    conn.execute(
+                        "UPDATE encounters SET sentence_en_google = NULL, sentence_target_google = NULL WHERE id = ?1",
+                        params![enc_id],
+                    )?;
+                }
+                if !deepl_ok {
+                    conn.execute(
+                        "UPDATE encounters SET sentence_en_deepl = NULL, sentence_target_deepl = NULL WHERE id = ?1",
+                        params![enc_id],
+                    )?;
+                }
+            }
+        }
+
+        // 4) Update schema_version to 2.2
+        conn.execute(
+            "UPDATE metadata SET value = '2.2' WHERE key = 'schema_version'",
+            [],
+        )?;
     }
 
     Ok(())
@@ -209,11 +283,22 @@ pub fn add_word(
         }
     }
 
+    // Filter encounter translations: NULL out pairs where the word doesn't appear
+    let google_has_word = !target_google.is_empty()
+        && target_google.to_lowercase().contains(&word_lower);
+    let deepl_has_word = !target_deepl.is_empty()
+        && target_deepl.to_lowercase().contains(&word_lower);
+
+    let en_google_val: Option<&str> = if google_has_word { Some(en_google) } else { None };
+    let target_google_val: Option<&str> = if google_has_word { Some(target_google) } else { None };
+    let en_deepl_val: Option<&str> = if deepl_has_word { Some(en_deepl) } else { None };
+    let target_deepl_val: Option<&str> = if deepl_has_word { Some(target_deepl) } else { None };
+
     match existing {
         None => {
             // New word
             conn.execute(
-                "INSERT INTO vocabulary (lang, word, word_lower, first_seen_day, encounter_count, last_encounter_day, stat_hp) VALUES (?1, ?2, ?3, ?4, 1, ?4, 3)",
+                "INSERT INTO vocabulary (lang, word, word_lower, first_seen_day, encounter_count, last_encounter_day, stat_hp) VALUES (?1, ?2, ?3, ?4, 1, ?4, 30)",
                 params![lang, word, word_lower, current_day],
             ).ok();
 
@@ -221,7 +306,7 @@ pub fn add_word(
 
             conn.execute(
                 "INSERT INTO encounters (vocab_id, encounter_index, day, sentence_zh, sentence_en_google, sentence_en_deepl, sentence_target_google, sentence_target_deepl, source_id, source_title, source_detail) VALUES (?1, 0, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-                params![vocab_id, current_day, sentence_zh, en_google, en_deepl, target_google, target_deepl, source_id, source_title, source_detail],
+                params![vocab_id, current_day, sentence_zh, en_google_val, en_deepl_val, target_google_val, target_deepl_val, source_id, source_title, source_detail],
             ).ok();
 
             AddWordResult {
@@ -233,7 +318,7 @@ pub fn add_word(
             let day_gap = current_day - last_day;
 
             conn.execute(
-                "UPDATE vocabulary SET encounter_count = encounter_count + 1, last_encounter_day = ?1, stat_hp = stat_hp + 2 WHERE id = ?2",
+                "UPDATE vocabulary SET encounter_count = encounter_count + 1, last_encounter_day = ?1, stat_hp = stat_hp + 20 WHERE id = ?2",
                 params![current_day, vocab_id],
             ).ok();
 
@@ -241,7 +326,7 @@ pub fn add_word(
 
             conn.execute(
                 "INSERT OR REPLACE INTO encounters (vocab_id, encounter_index, day, day_gap, sentence_zh, sentence_en_google, sentence_en_deepl, sentence_target_google, sentence_target_deepl, source_id, source_title, source_detail) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-                params![vocab_id, next_index, current_day, day_gap, sentence_zh, en_google, en_deepl, target_google, target_deepl, source_id, source_title, source_detail],
+                params![vocab_id, next_index, current_day, day_gap, sentence_zh, en_google_val, en_deepl_val, target_google_val, target_deepl_val, source_id, source_title, source_detail],
             ).ok();
 
             AddWordResult {
@@ -310,7 +395,7 @@ pub fn add_word_manual(
     }
 
     conn.execute(
-        "INSERT INTO vocabulary (lang, word, word_lower, first_seen_day, encounter_count, last_encounter_day, stat_hp, note) VALUES (?1, ?2, ?3, ?4, 0, ?4, 3, ?5)",
+        "INSERT INTO vocabulary (lang, word, word_lower, first_seen_day, encounter_count, last_encounter_day, stat_hp, note) VALUES (?1, ?2, ?3, ?4, 0, ?4, 30, ?5)",
         params![lang, word, word_lower, current_day, note],
     )
     .ok();
@@ -338,12 +423,12 @@ pub fn get_vocabulary_list(
 
     let query = if let Some(_lang_code) = lang {
         format!(
-            "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at FROM vocabulary WHERE lang = ?1 ORDER BY {} LIMIT ?2",
+            "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at, crit_evasion FROM vocabulary WHERE lang = ?1 ORDER BY {} LIMIT ?2",
             order_clause
         )
     } else {
         format!(
-            "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at FROM vocabulary ORDER BY {} LIMIT ?2",
+            "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at, crit_evasion FROM vocabulary ORDER BY {} LIMIT ?2",
             order_clause
         )
     };
@@ -369,6 +454,7 @@ pub fn get_vocabulary_list(
                     parent_id: row.get(12)?,
                     note: row.get(13)?,
                     last_reviewed_at: row.get(14)?,
+                    crit_evasion: row.get(15)?,
                 })
             }) {
                 for row in rows.flatten() {
@@ -379,7 +465,7 @@ pub fn get_vocabulary_list(
     } else {
         // No language filter — use different param binding
         let query_no_lang = format!(
-            "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at FROM vocabulary ORDER BY {} LIMIT ?1",
+            "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at, crit_evasion FROM vocabulary ORDER BY {} LIMIT ?1",
             order_clause
         );
         if let Ok(mut stmt) = conn.prepare(&query_no_lang) {
@@ -400,6 +486,7 @@ pub fn get_vocabulary_list(
                     parent_id: row.get(12)?,
                     note: row.get(13)?,
                     last_reviewed_at: row.get(14)?,
+                    crit_evasion: row.get(15)?,
                 })
             }) {
                 for row in rows.flatten() {
@@ -448,7 +535,7 @@ pub fn get_word_encounters(conn: &Connection, vocab_id: i64) -> Vec<Encounter> {
 /// Get a word by ID
 pub fn get_word_by_id(conn: &Connection, vocab_id: i64) -> Option<VocabEntry> {
     conn.query_row(
-        "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at FROM vocabulary WHERE id = ?1",
+        "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at, crit_evasion FROM vocabulary WHERE id = ?1",
         params![vocab_id],
         |row| {
             Ok(VocabEntry {
@@ -467,6 +554,7 @@ pub fn get_word_by_id(conn: &Connection, vocab_id: i64) -> Option<VocabEntry> {
                 parent_id: row.get(12)?,
                 note: row.get(13)?,
                 last_reviewed_at: row.get(14)?,
+                crit_evasion: row.get(15)?,
             })
         },
     )
@@ -477,7 +565,7 @@ pub fn get_word_by_id(conn: &Connection, vocab_id: i64) -> Option<VocabEntry> {
 pub fn get_children(conn: &Connection, parent_id: i64) -> Vec<VocabEntry> {
     let mut children = Vec::new();
     if let Ok(mut stmt) = conn.prepare(
-        "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at FROM vocabulary WHERE parent_id = ?1",
+        "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at, crit_evasion FROM vocabulary WHERE parent_id = ?1",
     ) {
         if let Ok(rows) = stmt.query_map(params![parent_id], |row| {
             Ok(VocabEntry {
@@ -496,6 +584,7 @@ pub fn get_children(conn: &Connection, parent_id: i64) -> Vec<VocabEntry> {
                 parent_id: row.get(12)?,
                 note: row.get(13)?,
                 last_reviewed_at: row.get(14)?,
+                crit_evasion: row.get(15)?,
             })
         }) {
             for row in rows.flatten() {
@@ -506,7 +595,7 @@ pub fn get_children(conn: &Connection, parent_id: i64) -> Vec<VocabEntry> {
     children
 }
 
-/// Decrease HP (好像认识). Returns (success, message, promoted_to_hof)
+/// Decrease HP (好像认识). Returns result with crit info.
 pub fn decrease_hp(conn: &Connection, vocab_id: i64) -> HpChangeResult {
     let word = match get_word_by_id(conn, vocab_id) {
         Some(w) => w,
@@ -515,11 +604,24 @@ pub fn decrease_hp(conn: &Connection, vocab_id: i64) -> HpChangeResult {
                 success: false,
                 message: "词条不存在".to_string(),
                 promoted: false,
+                crit_rate: 0.0,
+                was_crit: false,
+                hp_change: 0,
             }
         }
     };
 
-    let new_hp = word.stat_hp - 1;
+    // Calculate crit rate from crit_evasion
+    let crit_rate = (-word.crit_evasion / 100.0).clamp(0.0, 1.0);
+
+    // Roll for crit
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let was_crit = rng.gen::<f64>() < crit_rate;
+
+    // Base -10, crit -15 (×1.5)
+    let hp_change: i64 = if was_crit { -15 } else { -10 };
+    let new_hp = word.stat_hp + hp_change;
 
     if new_hp <= 0 {
         // Promote to hall of fame
@@ -528,11 +630,17 @@ pub fn decrease_hp(conn: &Connection, vocab_id: i64) -> HpChangeResult {
                 success: true,
                 message: format!("🎉 '{}' 总选出道！", word.word),
                 promoted: true,
+                crit_rate,
+                was_crit,
+                hp_change,
             },
             Err(e) => HpChangeResult {
                 success: false,
                 message: format!("出道失败: {}", e),
                 promoted: false,
+                crit_rate,
+                was_crit,
+                hp_change: 0,
             },
         }
     } else {
@@ -544,20 +652,42 @@ pub fn decrease_hp(conn: &Connection, vocab_id: i64) -> HpChangeResult {
 
         HpChangeResult {
             success: true,
-            message: format!("HP: {} → {}", word.stat_hp, new_hp),
+            message: format!("HP: {} → {} ({})", word.stat_hp, new_hp, hp_change),
             promoted: false,
+            crit_rate,
+            was_crit,
+            hp_change,
         }
     }
 }
 
-/// Increase HP (不太认识)
-pub fn increase_hp(conn: &Connection, vocab_id: i64) -> (bool, String) {
+/// Increase HP (不太认识). Returns result with crit info.
+pub fn increase_hp(conn: &Connection, vocab_id: i64) -> HpChangeResult {
     let word = match get_word_by_id(conn, vocab_id) {
         Some(w) => w,
-        None => return (false, "词条不存在".to_string()),
+        None => {
+            return HpChangeResult {
+                success: false,
+                message: "词条不存在".to_string(),
+                promoted: false,
+                crit_rate: 0.0,
+                was_crit: false,
+                hp_change: 0,
+            }
+        }
     };
 
-    let new_hp = word.stat_hp + 2;
+    // Calculate crit rate from crit_evasion (same rate for both directions)
+    let crit_rate = (-word.crit_evasion / 100.0).clamp(0.0, 1.0);
+
+    // Roll for crit (被暴击)
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    let was_crit = rng.gen::<f64>() < crit_rate;
+
+    // Base +20, crit +30 (×1.5)
+    let hp_change: i64 = if was_crit { 30 } else { 20 };
+    let new_hp = word.stat_hp + hp_change;
 
     conn.execute(
         "UPDATE vocabulary SET stat_hp = ?1, last_reviewed_at = CURRENT_TIMESTAMP WHERE id = ?2",
@@ -565,10 +695,14 @@ pub fn increase_hp(conn: &Connection, vocab_id: i64) -> (bool, String) {
     )
     .ok();
 
-    (
-        true,
-        format!("HP: {} → {} (+2)", word.stat_hp, new_hp),
-    )
+    HpChangeResult {
+        success: true,
+        message: format!("HP: {} → {} (+{})", word.stat_hp, new_hp, hp_change),
+        promoted: false,
+        crit_rate,
+        was_crit,
+        hp_change,
+    }
 }
 
 /// Promote a word to hall of fame
@@ -641,9 +775,9 @@ pub fn demote_from_hall_of_fame(conn: &Connection, hof_id: i64) -> (bool, String
             let current_day = get_current_day(conn);
             let breakthrough = entry.breakthrough_count.unwrap_or(0) + 1;
 
-            // Re-insert into vocabulary with HP=3 and breakthrough+1
+            // Re-insert into vocabulary with HP=30 and breakthrough+1
             conn.execute(
-                "INSERT OR REPLACE INTO vocabulary (lang, word, word_lower, first_seen_day, encounter_count, last_encounter_day, stat_hp, breakthrough) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 3, ?7)",
+                "INSERT OR REPLACE INTO vocabulary (lang, word, word_lower, first_seen_day, encounter_count, last_encounter_day, stat_hp, breakthrough) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 30, ?7)",
                 params![
                     entry.lang,
                     entry.word,
@@ -769,7 +903,7 @@ pub fn search_word(conn: &Connection, word: &str, lang: &str) -> Vec<VocabEntry>
     let mut results = Vec::new();
 
     if let Ok(mut stmt) = conn.prepare(
-        "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at FROM vocabulary WHERE lang = ?1 AND word_lower = ?2",
+        "SELECT id, lang, word, first_seen_day, encounter_count, last_encounter_day, stat_hp, stat_atk, stat_def, stat_res, stat_spd, breakthrough, parent_id, note, last_reviewed_at, crit_evasion FROM vocabulary WHERE lang = ?1 AND word_lower = ?2",
     ) {
         if let Ok(rows) = stmt.query_map(params![lang, word_lower], |row| {
             Ok(VocabEntry {
@@ -788,6 +922,7 @@ pub fn search_word(conn: &Connection, word: &str, lang: &str) -> Vec<VocabEntry>
                 parent_id: row.get(12)?,
                 note: row.get(13)?,
                 last_reviewed_at: row.get(14)?,
+                crit_evasion: row.get(15)?,
             })
         }) {
             for row in rows.flatten() {
@@ -825,6 +960,245 @@ pub fn set_parent(conn: &Connection, child_id: i64, parent_id: Option<i64>) -> (
         }
         Err(e) => (false, format!("设置失败: {}", e)),
     }
+}
+
+// === Fill-in-the-blank (填空) ===
+
+/// Get languages eligible for fill-in-the-blank (≥ 4 vocab words AND has encounters with target sentences)
+pub fn get_fill_blank_eligible_langs(conn: &Connection) -> Vec<(String, i64)> {
+    let mut results = Vec::new();
+
+    // Find languages that have at least one encounter with a non-null target sentence
+    // AND have at least 4 vocabulary words total
+    if let Ok(mut stmt) = conn.prepare(
+        "SELECT v.lang, COUNT(*) as word_count
+         FROM vocabulary v
+         WHERE v.lang IN (
+             SELECT DISTINCT v2.lang FROM vocabulary v2
+             JOIN encounters e ON e.vocab_id = v2.id
+             WHERE e.sentence_target_google IS NOT NULL OR e.sentence_target_deepl IS NOT NULL
+         )
+         GROUP BY v.lang
+         HAVING COUNT(*) >= 4
+         ORDER BY v.lang"
+    ) {
+        if let Ok(rows) = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        }) {
+            for row in rows.flatten() {
+                results.push(row);
+            }
+        }
+    }
+
+    results
+}
+
+/// Get a fill-in-the-blank question for a given language
+pub fn get_fill_blank_question(conn: &Connection, lang: &str) -> Result<FillBlankQuestion, String> {
+    use rand::seq::SliceRandom;
+
+    // Fetch candidate encounters: those with a target sentence where the word appears
+    let mut candidates: Vec<(i64, String, Option<String>, Option<String>, Option<String>,
+                             Option<String>, Option<String>, Option<String>, Option<String>)> = Vec::new();
+
+    if let Ok(mut stmt) = conn.prepare(
+        "SELECT v.id, v.word, e.sentence_zh, e.sentence_en_google, e.sentence_en_deepl,
+                e.sentence_target_google, e.sentence_target_deepl, e.source_id, e.source_title
+         FROM encounters e
+         JOIN vocabulary v ON e.vocab_id = v.id
+         WHERE v.lang = ?1
+         AND (e.sentence_target_google IS NOT NULL OR e.sentence_target_deepl IS NOT NULL)
+         ORDER BY RANDOM()
+         LIMIT 50"
+    ) {
+        if let Ok(rows) = stmt.query_map(params![lang], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, Option<String>>(8)?,
+            ))
+        }) {
+            for row in rows.flatten() {
+                candidates.push(row);
+            }
+        }
+    }
+
+    // Try candidates until we find one where the word appears in the target sentence
+    for (word_id, word, sentence_zh, en_google, en_deepl, target_google, target_deepl, source_id, source_title) in &candidates {
+        let word_lower = word.to_lowercase();
+
+        // Try google first, then deepl
+        let (target_sentence, engine) = if let Some(tg) = target_google {
+            if tg.to_lowercase().contains(&word_lower) {
+                (tg.clone(), "Google".to_string())
+            } else if let Some(td) = target_deepl {
+                if td.to_lowercase().contains(&word_lower) {
+                    (td.clone(), "DeepL".to_string())
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+        } else if let Some(td) = target_deepl {
+            if td.to_lowercase().contains(&word_lower) {
+                (td.clone(), "DeepL".to_string())
+            } else {
+                continue;
+            }
+        } else {
+            continue;
+        };
+
+        // Create the blank: replace first case-insensitive occurrence with ____
+        let sentence_with_blank = replace_first_case_insensitive(&target_sentence, word, "____");
+
+        if sentence_with_blank == target_sentence {
+            // Word not found (shouldn't happen after the contains check, but safety)
+            continue;
+        }
+
+        // Pick the English sentence to show (prefer whichever engine matched)
+        let sentence_en = if engine == "Google" {
+            en_google.clone()
+        } else {
+            en_deepl.clone().or_else(|| en_google.clone())
+        };
+
+        // Get 3 distractor words from same language
+        let mut distractors: Vec<(i64, String)> = Vec::new();
+        if let Ok(mut stmt) = conn.prepare(
+            "SELECT id, word FROM vocabulary WHERE lang = ?1 AND id != ?2 ORDER BY RANDOM() LIMIT 3"
+        ) {
+            if let Ok(rows) = stmt.query_map(params![lang, word_id], |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+            }) {
+                for row in rows.flatten() {
+                    distractors.push(row);
+                }
+            }
+        }
+
+        if distractors.len() < 3 {
+            return Err("该语言词汇量不足".to_string());
+        }
+
+        // Build choices: correct word + 3 distractors, shuffled
+        let mut choices: Vec<(i64, String)> = vec![(*word_id, word.clone())];
+        choices.extend(distractors);
+
+        let mut rng = rand::thread_rng();
+        choices.shuffle(&mut rng);
+
+        return Ok(FillBlankQuestion {
+            sentence_zh: sentence_zh.clone(),
+            sentence_en,
+            sentence_target_with_blank: sentence_with_blank,
+            source_title: source_title.clone(),
+            source_id: source_id.clone(),
+            correct_word_id: *word_id,
+            correct_word: word.clone(),
+            choices,
+            engine,
+        });
+    }
+
+    Err("no_suitable_sentence".to_string())
+}
+
+/// Replace first case-insensitive occurrence of `needle` in `haystack` with `replacement`.
+/// Uses regex to correctly handle Unicode characters whose byte length changes under lowercasing.
+fn replace_first_case_insensitive(haystack: &str, needle: &str, replacement: &str) -> String {
+    let pattern = regex::escape(needle);
+    if let Ok(re) = regex::RegexBuilder::new(&pattern)
+        .case_insensitive(true)
+        .build()
+    {
+        if let Some(m) = re.find(haystack) {
+            let mut result = String::with_capacity(haystack.len());
+            result.push_str(&haystack[..m.start()]);
+            result.push_str(replacement);
+            result.push_str(&haystack[m.end()..]);
+            return result;
+        }
+    }
+    haystack.to_string()
+}
+
+/// Submit a fill-in-the-blank answer and adjust crit_evasion for all choice words
+pub fn submit_fill_blank_answer(
+    conn: &Connection,
+    correct_word_id: i64,
+    chosen_word_id: i64,
+    all_choice_ids: Vec<i64>,
+    no_helper: bool,
+) -> FillBlankAnswer {
+    let is_correct = correct_word_id == chosen_word_id;
+
+    let mut evasion_changes: Vec<(i64, String, f64)> = Vec::new();
+
+    if is_correct {
+        // Correct answer
+        let correct_delta = if no_helper { -20.0 } else { -10.0 };
+        let distractor_delta = if no_helper { -6.0 } else { -3.0 };
+
+        for &wid in &all_choice_ids {
+            let delta = if wid == correct_word_id { correct_delta } else { distractor_delta };
+            let word_name = update_crit_evasion(conn, wid, delta);
+            evasion_changes.push((wid, word_name, delta));
+        }
+    } else {
+        // Wrong answer
+        for &wid in &all_choice_ids {
+            let delta = if wid == chosen_word_id || wid == correct_word_id {
+                10.0 // wrongly chosen or missed correct
+            } else {
+                -3.0 // correctly not chosen
+            };
+            let word_name = update_crit_evasion(conn, wid, delta);
+            evasion_changes.push((wid, word_name, delta));
+        }
+    }
+
+    let correct_word = get_word_name(conn, correct_word_id);
+    let chosen_word = get_word_name(conn, chosen_word_id);
+
+    FillBlankAnswer {
+        correct: is_correct,
+        correct_word,
+        chosen_word,
+        chosen_word_id,
+        evasion_changes,
+    }
+}
+
+/// Update a word's crit_evasion by delta, return the word's name
+fn update_crit_evasion(conn: &Connection, vocab_id: i64, delta: f64) -> String {
+    conn.execute(
+        "UPDATE vocabulary SET crit_evasion = crit_evasion + ?1 WHERE id = ?2",
+        params![delta, vocab_id],
+    )
+    .ok();
+
+    get_word_name(conn, vocab_id)
+}
+
+/// Get a word's display name by id
+fn get_word_name(conn: &Connection, vocab_id: i64) -> String {
+    conn.query_row(
+        "SELECT word FROM vocabulary WHERE id = ?1",
+        params![vocab_id],
+        |row| row.get(0),
+    )
+    .unwrap_or_else(|_| "?".to_string())
 }
 
 // === Activity logging ===

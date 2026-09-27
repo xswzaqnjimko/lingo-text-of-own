@@ -62,6 +62,7 @@ pub struct VocabEntry {
     pub parent_id: Option<i64>,
     pub note: Option<String>,
     pub last_reviewed_at: Option<String>,
+    pub crit_evasion: f64,
 }
 
 /// An encounter record
@@ -196,6 +197,9 @@ pub struct HpChangeResult {
     pub success: bool,
     pub message: String,
     pub promoted: bool,
+    pub crit_rate: f64,
+    pub was_crit: bool,
+    pub hp_change: i64,
 }
 
 /// Library scan stats
@@ -212,6 +216,30 @@ pub struct ApiUsage {
     pub google_chars: i64,
     pub deepl_chars: i64,
     pub month_label: String,
+}
+
+/// A fill-in-the-blank question
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FillBlankQuestion {
+    pub sentence_zh: Option<String>,
+    pub sentence_en: Option<String>,
+    pub sentence_target_with_blank: String,
+    pub source_title: Option<String>,
+    pub source_id: Option<String>,
+    pub correct_word_id: i64,
+    pub correct_word: String,
+    pub choices: Vec<(i64, String)>,
+    pub engine: String,
+}
+
+/// Result of answering a fill-in-the-blank question
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FillBlankAnswer {
+    pub correct: bool,
+    pub correct_word: String,
+    pub chosen_word: String,
+    pub chosen_word_id: i64,
+    pub evasion_changes: Vec<(i64, String, f64)>,
 }
 
 /// Result of drawing a sentence from a specific work by ID

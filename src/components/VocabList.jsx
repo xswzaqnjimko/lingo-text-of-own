@@ -90,7 +90,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 }
 
 // --- Scroll Buttons ---
-function ScrollButtons() {
+function ScrollButtons({ onFirstPage }) {
   const scrollTo = (position) => {
     const el = document.querySelector(".main-content");
     if (el) {
@@ -100,13 +100,16 @@ function ScrollButtons() {
   };
   return (
     <div className="scroll-buttons">
+      {onFirstPage && (
+        <button className="scroll-btn" onClick={onFirstPage} title="Page 1">1↑</button>
+      )}
       <button className="scroll-btn" onClick={() => scrollTo("top")} title="Top">↑</button>
       <button className="scroll-btn" onClick={() => scrollTo("bottom")} title="Bottom">↓</button>
     </div>
   );
 }
 
-export default function VocabList({ lang, supportedLangs, onRefreshStats, showToast }) {
+export default function VocabList({ lang, supportedLangs, onRefreshStats, showToast, pendingJumpWordId, onJumpHandled, isActive }) {
   const [words, setWords] = useState([]);
   const [filterLang, setFilterLang] = useState(null);
   const [sortBy, setSortBy] = useState("last_encounter");
@@ -125,7 +128,11 @@ export default function VocabList({ lang, supportedLangs, onRefreshStats, showTo
   // Highlighted word (from search click)
   const [highlightedId, setHighlightedId] = useState(null);
 
-  // Load word list
+  // Ref to track expanded ID without adding it as a dependency
+  const expandedIdRef = useRef(expandedId);
+  useEffect(() => { expandedIdRef.current = expandedId; }, [expandedId]);
+
+  // Load word list (resets to page 1 — for filter/sort changes)
   const loadWords = useCallback(async () => {
     try {
       const list = await getVocabularyList(filterLang, 10000, sortBy);
@@ -136,9 +143,39 @@ export default function VocabList({ lang, supportedLangs, onRefreshStats, showTo
     }
   }, [filterLang, sortBy]);
 
+  // Refresh word list (follows expanded word — for HP changes)
+  const refreshWords = useCallback(async () => {
+    try {
+      const list = await getVocabularyList(filterLang, 10000, sortBy);
+      setWords(list);
+      const eid = expandedIdRef.current;
+      if (eid != null) {
+        const idx = list.findIndex(w => w.id === eid);
+        if (idx >= 0) {
+          setCurrentPage(Math.floor(idx / ITEMS_PER_PAGE) + 1);
+          setTimeout(() => {
+            const el = document.getElementById(`vocab-item-${eid}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 50);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to refresh vocabulary:", e);
+    }
+  }, [filterLang, sortBy]);
+
   useEffect(() => {
     loadWords();
   }, [loadWords]);
+
+  // Re-fetch when page becomes active (keeps position via refreshWords)
+  const prevActiveRef = useRef(isActive);
+  useEffect(() => {
+    if (isActive && !prevActiveRef.current && words.length > 0) {
+      refreshWords();
+    }
+    prevActiveRef.current = isActive;
+  }, [isActive, refreshWords, words.length]);
 
   // Toggle expand
   const toggleExpand = useCallback((id) => {
@@ -188,6 +225,19 @@ export default function VocabList({ lang, supportedLangs, onRefreshStats, showTo
     },
     [words]
   );
+
+  // Handle pending jump from FillBlank page
+  useEffect(() => {
+    if (pendingJumpWordId != null && words.length > 0) {
+      const idx = words.findIndex((w) => w.id === pendingJumpWordId);
+      if (idx >= 0) {
+        jumpToWord(pendingJumpWordId);
+      } else {
+        showToast(t("jump_word_not_found", lang));
+      }
+      if (onJumpHandled) onJumpHandled();
+    }
+  }, [pendingJumpWordId, words, jumpToWord, showToast, lang, onJumpHandled]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -293,7 +343,7 @@ export default function VocabList({ lang, supportedLangs, onRefreshStats, showTo
               onToggle={() => toggleExpand(word.id)}
               lang={lang}
               supportedLangs={supportedLangs}
-              onRefresh={() => { loadWords(); onRefreshStats(); }}
+              onRefresh={() => { refreshWords(); onRefreshStats(); }}
               showToast={showToast}
             />
           ))}
@@ -327,8 +377,28 @@ export default function VocabList({ lang, supportedLangs, onRefreshStats, showTo
         )}
       </div>
 
-      <ScrollButtons />
+      <ScrollButtons onFirstPage={() => {
+        setCurrentPage(1);
+        const el = document.querySelector(".main-content");
+        if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+      }} />
     </div>
+  );
+}
+
+// --- Highlight word in sentence ---
+function highlightWord(sentence, targetWord) {
+  if (!targetWord) return sentence;
+  const escaped = targetWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = sentence.split(regex);
+  if (parts.length === 1) return sentence; // no match
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <strong key={i} style={{ textDecoration: "underline", textUnderlineOffset: 2 }}>{part}</strong>
+    ) : (
+      part
+    )
   );
 }
 
@@ -339,7 +409,7 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
   const [parentWord, setParentWord] = useState(null);
   const [editNote, setEditNote] = useState(false);
   const [noteText, setNoteText] = useState(word.note || "");
-  const [showEncounters, setShowEncounters] = useState(false);
+  const [showEncounters, setShowEncounters] = useState(true);
 
   // Encounter pagination
   const [encPage, setEncPage] = useState(1);
@@ -362,9 +432,14 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
   const handleDecrease = async () => {
     try {
       const result = await decreaseHp(word.id);
-      showToast(result.message);
       if (result.promoted) {
-        showToast(t("promoted_toast", lang));
+        const critPct = Math.round(result.crit_rate * 100);
+        const critText = result.was_crit ? t("crit_hit", lang) : t("crit_miss", lang);
+        showToast(`${t("crit_rate_label", lang)} ${critPct}% — ${critText} ${result.message}`);
+      } else {
+        const critPct = Math.round(result.crit_rate * 100);
+        const critText = result.was_crit ? t("crit_hit", lang) : t("crit_miss", lang);
+        showToast(`${t("crit_rate_label", lang)} ${critPct}% — ${critText} ${result.message}`);
       }
       logWordReviewed(word.lang).catch(console.error);
       onRefresh();
@@ -375,8 +450,10 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
 
   const handleIncrease = async () => {
     try {
-      const [ok, msg] = await increaseHp(word.id);
-      showToast(msg);
+      const result = await increaseHp(word.id);
+      const critPct = Math.round(result.crit_rate * 100);
+      const critText = result.was_crit ? t("crit_hit_enemy", lang) : t("crit_miss", lang);
+      showToast(`${t("crit_rate_label", lang)} ${critPct}% — ${critText} ${result.message}`);
       logWordReviewed(word.lang).catch(console.error);
       onRefresh();
     } catch (e) {
@@ -433,6 +510,12 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
             <dt>{t("stats_hp", lang)}</dt>
             <dd>
               HP={word.stat_hp}
+              <span style={{ marginLeft: 10, color: "var(--text-muted)" }}>
+                {t("crit_evasion_label", lang)}={word.crit_evasion ?? 0}
+              </span>
+              <span style={{ marginLeft: 6, color: "var(--text-muted)" }}>
+                ({t("crit_rate_label", lang)} {Math.round(Math.max(0, Math.min(1, -(word.crit_evasion ?? 0) / 100)) * 100)}%)
+              </span>
               {word.breakthrough > 0 && (
                 <span style={{ marginLeft: 8 }}>
                   {t("breakthrough", lang)} ×{word.breakthrough}
@@ -543,13 +626,24 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
                         )}
                         {enc.sentence_en_google && (
                           <div>
-                            {t("translation_en", lang)} {enc.sentence_en_google}
+                            {t("translation_en", lang)} {enc.sentence_en_google} {t("engine_google", lang)}
+                          </div>
+                        )}
+                        {enc.sentence_en_deepl && (
+                          <div>
+                            {t("translation_en", lang)} {enc.sentence_en_deepl} {t("engine_deepl", lang)}
                           </div>
                         )}
                         {enc.sentence_target_google && (
                           <div>
                             {t("translation_target", lang, word.lang)}{" "}
-                            {enc.sentence_target_google}
+                            {highlightWord(enc.sentence_target_google, word.word)} {t("engine_google", lang)}
+                          </div>
+                        )}
+                        {enc.sentence_target_deepl && (
+                          <div>
+                            {t("translation_target", lang, word.lang)}{" "}
+                            {highlightWord(enc.sentence_target_deepl, word.word)} {t("engine_deepl", lang)}
                           </div>
                         )}
                         {enc.source_title && (

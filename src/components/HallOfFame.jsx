@@ -63,7 +63,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 }
 
 // --- Scroll Buttons ---
-function ScrollButtons() {
+function ScrollButtons({ onFirstPage }) {
   const scrollTo = (position) => {
     const el = document.querySelector(".main-content");
     if (el) {
@@ -73,6 +73,9 @@ function ScrollButtons() {
   };
   return (
     <div className="scroll-buttons">
+      {onFirstPage && (
+        <button className="scroll-btn" onClick={onFirstPage} title="Page 1">1↑</button>
+      )}
       <button className="scroll-btn" onClick={() => scrollTo("top")} title="Top">↑</button>
       <button className="scroll-btn" onClick={() => scrollTo("bottom")} title="Bottom">↓</button>
     </div>
@@ -266,8 +269,28 @@ export default function HallOfFame({ lang, supportedLangs, onRefreshStats, showT
         </>
       )}
 
-      <ScrollButtons />
+      <ScrollButtons onFirstPage={() => {
+        setCurrentPage(1);
+        const el = document.querySelector(".main-content");
+        if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+      }} />
     </div>
+  );
+}
+
+// --- Highlight word in sentence ---
+function highlightWord(sentence, targetWord) {
+  if (!targetWord) return sentence;
+  const escaped = targetWord.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = sentence.split(regex);
+  if (parts.length === 1) return sentence;
+  return parts.map((part, i) =>
+    regex.test(part) ? (
+      <strong key={i} style={{ textDecoration: "underline", textUnderlineOffset: 2 }}>{part}</strong>
+    ) : (
+      part
+    )
   );
 }
 
@@ -324,7 +347,25 @@ function HofItem({ entry, expanded, highlighted, onToggle, onDemote, lang, suppo
           {firstData && (
             <div className="encounter-item">
               <div className="enc-label">{t("first_encounter_detail", lang)}</div>
-              {firstData.sentence_zh && <div>{firstData.sentence_zh}</div>}
+              {firstData.sentence_zh && <div>{t("sentence_zh", lang)} {firstData.sentence_zh}</div>}
+              {firstData.sentence_en_google && (
+                <div>{t("translation_en", lang)} {firstData.sentence_en_google} {t("engine_google", lang)}</div>
+              )}
+              {firstData.sentence_en_deepl && (
+                <div>{t("translation_en", lang)} {firstData.sentence_en_deepl} {t("engine_deepl", lang)}</div>
+              )}
+              {firstData.sentence_target_google && (
+                <div>
+                  {t("translation_target", lang, entry.lang)}{" "}
+                  {highlightWord(firstData.sentence_target_google, entry.word)} {t("engine_google", lang)}
+                </div>
+              )}
+              {firstData.sentence_target_deepl && (
+                <div>
+                  {t("translation_target", lang, entry.lang)}{" "}
+                  {highlightWord(firstData.sentence_target_deepl, entry.word)} {t("engine_deepl", lang)}
+                </div>
+              )}
               {firstData.source_title && (
                 <div style={{ color: "var(--text-muted)" }}>
                   {t("source_work", lang)} {firstData.source_title}
@@ -337,7 +378,25 @@ function HofItem({ entry, expanded, highlighted, onToggle, onDemote, lang, suppo
           {lastData && (
             <div className="encounter-item">
               <div className="enc-label">{t("final_encounter_detail", lang)}</div>
-              {lastData.sentence_zh && <div>{lastData.sentence_zh}</div>}
+              {lastData.sentence_zh && <div>{t("sentence_zh", lang)} {lastData.sentence_zh}</div>}
+              {lastData.sentence_en_google && (
+                <div>{t("translation_en", lang)} {lastData.sentence_en_google} {t("engine_google", lang)}</div>
+              )}
+              {lastData.sentence_en_deepl && (
+                <div>{t("translation_en", lang)} {lastData.sentence_en_deepl} {t("engine_deepl", lang)}</div>
+              )}
+              {lastData.sentence_target_google && (
+                <div>
+                  {t("translation_target", lang, entry.lang)}{" "}
+                  {highlightWord(lastData.sentence_target_google, entry.word)} {t("engine_google", lang)}
+                </div>
+              )}
+              {lastData.sentence_target_deepl && (
+                <div>
+                  {t("translation_target", lang, entry.lang)}{" "}
+                  {highlightWord(lastData.sentence_target_deepl, entry.word)} {t("engine_deepl", lang)}
+                </div>
+              )}
               {lastData.source_title && (
                 <div style={{ color: "var(--text-muted)" }}>
                   {t("source_work", lang)} {lastData.source_title}

@@ -11,10 +11,11 @@ import {
 import SentenceView from "./SentenceView";
 import VocabList from "./VocabList";
 import HallOfFame from "./HallOfFame";
+import FillBlank from "./FillBlank";
 import Activity from "./Activity";
 import Settings from "./Settings";
 
-const PAGES = ["home", "vocab", "hall", "activity", "settings"];
+const PAGES = ["home", "vocab", "hall", "fillblank", "activity", "settings"];
 
 const DEFAULT_SETTINGS = {
   libraryPath: "",
@@ -40,6 +41,7 @@ export default function App() {
   const [sentence, setSentence] = useState(null);
   const [translations, setTranslations] = useState(null);
   const [dictLinks, setDictLinks] = useState({});
+  const [pendingJumpWordId, setPendingJumpWordId] = useState(null);
   const toastTimer = useRef(null);
   const storeRef = useRef(null);
 
@@ -124,63 +126,12 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
 
-  // Navigate
-  const navigate = useCallback((p) => setPage(p), []);
-
-  // Render page content
-  const renderPage = () => {
-    switch (page) {
-      case "home":
-        return (
-          <SentenceView
-            settings={settings}
-            lang={lang}
-            supportedLangs={supportedLangs}
-            onRefreshStats={refreshStats}
-            showToast={showToast}
-            sentence={sentence}
-            setSentence={setSentence}
-            translations={translations}
-            setTranslations={setTranslations}
-            dictLinks={dictLinks}
-            setDictLinks={setDictLinks}
-          />
-        );
-      case "vocab":
-        return (
-          <VocabList
-            lang={lang}
-            supportedLangs={supportedLangs}
-            onRefreshStats={refreshStats}
-            showToast={showToast}
-          />
-        );
-      case "hall":
-        return (
-          <HallOfFame
-            lang={lang}
-            supportedLangs={supportedLangs}
-            onRefreshStats={refreshStats}
-            showToast={showToast}
-          />
-        );
-      case "activity":
-        return <Activity lang={lang} />;
-      case "settings":
-        return (
-          <Settings
-            settings={settings}
-            onSave={saveSettings}
-            lang={lang}
-            supportedLangs={supportedLangs}
-            dataPaths={dataPaths}
-            showToast={showToast}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  // Navigate (lazy mount: track visited pages so components mount on first visit)
+  const [visited, setVisited] = useState(new Set(["home"]));
+  const navigate = useCallback((p) => {
+    setPage(p);
+    setVisited((prev) => prev.has(p) ? prev : new Set(prev).add(p));
+  }, []);
 
   return (
     <div className="app-layout">
@@ -192,6 +143,7 @@ export default function App() {
             ["home", t("nav_home", lang)],
             ["vocab", t("nav_vocab", lang)],
             ["hall", t("nav_hall", lang)],
+            ["fillblank", t("nav_fillblank", lang)],
             ["activity", t("nav_activity", lang)],
           ].map(([key, label]) => (
             <li key={key}>
@@ -229,8 +181,79 @@ export default function App() {
         )}
       </nav>
 
-      {/* Main content */}
-      <main className="main-content">{renderPage()}</main>
+      {/* Main content — lazy mount + display:none to preserve page state */}
+      <main className="main-content">
+        {visited.has("home") && (
+          <div style={{ display: page === "home" ? undefined : "none" }}>
+            <SentenceView
+              settings={settings}
+              lang={lang}
+              supportedLangs={supportedLangs}
+              onRefreshStats={refreshStats}
+              showToast={showToast}
+              sentence={sentence}
+              setSentence={setSentence}
+              translations={translations}
+              setTranslations={setTranslations}
+              dictLinks={dictLinks}
+              setDictLinks={setDictLinks}
+            />
+          </div>
+        )}
+        {visited.has("vocab") && (
+          <div style={{ display: page === "vocab" ? undefined : "none" }}>
+            <VocabList
+              lang={lang}
+              supportedLangs={supportedLangs}
+              onRefreshStats={refreshStats}
+              showToast={showToast}
+              pendingJumpWordId={pendingJumpWordId}
+              onJumpHandled={() => setPendingJumpWordId(null)}
+              isActive={page === "vocab"}
+            />
+          </div>
+        )}
+        {visited.has("hall") && (
+          <div style={{ display: page === "hall" ? undefined : "none" }}>
+            <HallOfFame
+              lang={lang}
+              supportedLangs={supportedLangs}
+              onRefreshStats={refreshStats}
+              showToast={showToast}
+            />
+          </div>
+        )}
+        {visited.has("fillblank") && (
+          <div style={{ display: page === "fillblank" ? undefined : "none" }}>
+            <FillBlank
+              lang={lang}
+              supportedLangs={supportedLangs}
+              showToast={showToast}
+              onJumpToWord={(id) => {
+                setPendingJumpWordId(id);
+                navigate("vocab");
+              }}
+            />
+          </div>
+        )}
+        {visited.has("activity") && (
+          <div style={{ display: page === "activity" ? undefined : "none" }}>
+            <Activity lang={lang} />
+          </div>
+        )}
+        {visited.has("settings") && (
+          <div style={{ display: page === "settings" ? undefined : "none" }}>
+            <Settings
+              settings={settings}
+              onSave={saveSettings}
+              lang={lang}
+              supportedLangs={supportedLangs}
+              dataPaths={dataPaths}
+              showToast={showToast}
+            />
+          </div>
+        )}
+      </main>
 
       {/* Toast */}
       {toast && <div className="toast">{toast}</div>}

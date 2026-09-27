@@ -115,6 +115,20 @@ export async function setParent(childId, parentId) {
   return invoke("set_parent", { childId, parentId });
 }
 
+// === Fill-in-the-blank ===
+
+export async function getFillBlankEligibleLangs() {
+  return invoke("get_fill_blank_eligible_langs");
+}
+
+export async function getFillBlankQuestion(lang) {
+  return invoke("get_fill_blank_question", { lang });
+}
+
+export async function submitFillBlankAnswer(correctWordId, chosenWordId, allChoiceIds, noHelper) {
+  return invoke("submit_fill_blank_answer", { correctWordId, chosenWordId, allChoiceIds, noHelper });
+}
+
 // === Hall of Fame ===
 
 export async function getHallOfFameList(lang, limit) {

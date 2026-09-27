@@ -31,6 +31,7 @@ export default function SentenceView({
   const [loading, setLoading] = useState(false);
   const [wordInputs, setWordInputs] = useState({});
   const [workIdInput, setWorkIdInput] = useState("");
+  const [showManual, setShowManual] = useState(false);
 
   const { selectedLangs, showComparison, googleApiKey, deeplApiKey, targetRelationships } = settings;
 
@@ -229,7 +230,44 @@ export default function SentenceView({
 
   return (
     <div>
-      <h1 className="page-title">{t("title_home", lang)}</h1>
+      <h1 className="page-title" style={{ display: "flex", alignItems: "center" }}>
+        <span>{t("title_home", lang)}</span>
+        <button
+          className="manual-btn"
+          style={{ marginLeft: "auto", fontSize: 14, padding: "4px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-card)", color: "var(--text)", cursor: "pointer" }}
+          onClick={() => setShowManual(true)}
+        >
+          {t("manual_button", lang)}
+        </button>
+      </h1>
+
+      {/* Manual modal */}
+      {showManual && (
+        <div className="manual-overlay" onClick={() => setShowManual(false)}>
+          <div className="manual-modal" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2 style={{ margin: 0 }}>{t("manual_title", lang)}</h2>
+              <button
+                onClick={() => setShowManual(false)}
+                style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "var(--text-muted)" }}
+              >
+                ✕
+              </button>
+            </div>
+            <p style={{ margin: "0 0 14px 0", fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+              {t("manual_disclaimer", lang)}
+            </p>
+            {["s1", "s2", "s3", "s4", "s5", "s6"].map((s) => (
+              <div key={s} style={{ marginBottom: 14 }}>
+                <h3 style={{ margin: "0 0 4px 0", fontSize: 14 }}>{t(`manual_${s}_title`, lang)}</h3>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" }}>
+                  {t(`manual_${s}_body`, lang)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Pool info */}
       {poolInfo && (

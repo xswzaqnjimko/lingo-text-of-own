@@ -181,6 +181,51 @@ const UI_TEXTS = {
 
     // Encounter pagination (v2.1)
     encounter_page: "遭遇记录 第 {0} / {1} 页",
+
+    // Crit system (v2.2)
+    crit_evasion_label: "必杀回避",
+    crit_rate_label: "暴击率",
+    crit_hit: "💥 暴击！",
+    crit_miss: "未暴击",
+    crit_hit_enemy: "💥 被暴击！",
+
+    // Encounter engine labels (v2.2)
+    engine_google: "(Google)",
+    engine_deepl: "(DeepL)",
+
+    // Fill-in-the-blank (v2.2)
+    nav_fillblank: "✏️ Naive填空",
+    fillblank_title: "✏️ Naive填空",
+    fillblank_draw: "填一句",
+    fillblank_mode_hint: "无提示模式（奖励翻倍）",
+    fillblank_mode_no_hint: "无提示模式（奖励翻倍）",
+    fillblank_select_lang: "选择目标语言",
+    fillblank_lang_not_eligible: "该语言词汇量不足（需至少4个词）",
+    fillblank_no_sentence: "未找到合适的句子，请再试一次",
+    fillblank_correct: "✅ 正确！",
+    fillblank_wrong: "❌ 错误，正确答案是：{0}",
+    fillblank_source: "出处：",
+    fillblank_evasion_title: "必杀回避变化：",
+    fillblank_check_word: "📖",
+    jump_word_not_found: "词条未找到，请检查语言筛选",
+
+    // Manual (v2.2)
+    manual_button: "❓ 使用说明",
+    manual_title: "使用说明",
+    manual_close: "关闭",
+    manual_disclaimer: "本应用在开发过程中大量使用了Claude辅助。",
+    manual_s1_title: "如何使用此应用",
+    manual_s1_body: "扫描文库 → 抽取句子 → 翻译 → 添加生词 → 在生词本复习 → 填空测验 → 毕业进入名人堂",
+    manual_s2_title: "HP 系统",
+    manual_s2_body: "新词初始 HP = 30。点击“好像认识”HP 基础 -10；点击“不太认识”HP 基础 +20。HP ≤ 0 时总选出道，进入名人堂。",
+    manual_s3_title: "暴击率",
+    manual_s3_body: "由词条的“必杀回避”值决定。暴击倍率 ×1.5。好像认识暴击 = HP -15（伤害加深）；不太认识被暴击 = HP +30（词条回复更多）。",
+    manual_s4_title: "必杀回避",
+    manual_s4_body: "通过填空测验调整。答对 → 必杀回避降低（暴击率升高 → 词条更快毕业）；答错 → 必杀回避升高（暴击率降低 → 词条更难毕业）。无提示模式正确时奖励翻倍。",
+    manual_s5_title: "填空说明",
+    manual_s5_body: "四个选项从你的生词本同语言词条中随机抽取，非语义相关。空格匹配为朴素字符串匹配，可能无法匹配变位/变格形式，这也是叫 Naive 的原因。",
+    manual_s6_title: "突破",
+    manual_s6_body: "从名人堂退回生词本的次数。",
   },
 
   en: {
@@ -348,6 +393,51 @@ const UI_TEXTS = {
 
     // Encounter pagination (v2.1)
     encounter_page: "Encounters page {0} / {1}",
+
+    // Crit system (v2.2)
+    crit_evasion_label: "Crit Evasion",
+    crit_rate_label: "Crit Rate",
+    crit_hit: "💥 Crit!",
+    crit_miss: "No crit",
+    crit_hit_enemy: "💥 Got crit!",
+
+    // Encounter engine labels (v2.2)
+    engine_google: "(Google)",
+    engine_deepl: "(DeepL)",
+
+    // Fill-in-the-blank (v2.2)
+    nav_fillblank: "✏️ Fill-Blank",
+    fillblank_title: "✏️ Naive Fill-in-the-Blank",
+    fillblank_draw: "Draw one",
+    fillblank_mode_hint: "No-Hint Mode (2× reward)",
+    fillblank_mode_no_hint: "No-Hint Mode (2× reward)",
+    fillblank_select_lang: "Select target language",
+    fillblank_lang_not_eligible: "Not enough words (need at least 4)",
+    fillblank_no_sentence: "No suitable sentence found, try again",
+    fillblank_correct: "✅ Correct!",
+    fillblank_wrong: "❌ Wrong, correct answer: {0}",
+    fillblank_source: "Source:",
+    fillblank_evasion_title: "Crit Evasion changes:",
+    fillblank_check_word: "📖",
+    jump_word_not_found: "Word not found. Check language filter.",
+
+    // Manual (v2.2)
+    manual_button: "❓ Manual",
+    manual_title: "Manual",
+    manual_close: "Close",
+    manual_disclaimer: "This app was developed with heavy use of Claude for assistant.",
+    manual_s1_title: "How to Use",
+    manual_s1_body: "Scan library → Draw sentences → Translate → Add words → Review in vocabulary notebook → Fill-blank quiz → Graduate to Hall of Fame",
+    manual_s2_title: "HP System",
+    manual_s2_body: "New words start at HP = 30. 'Seems Familiar' = base HP -10; 'Don't Know Well' = base HP +20. HP ≤ 0 = graduated to Hall of Fame.",
+    manual_s3_title: "Crit Rate",
+    manual_s3_body: "Derived from a word's Crit Evasion stat. Crit multiplier ×1.5. 'Seems Familiar' crit = HP -15 (extra damage); 'Don't Know Well' crit = HP +30 (word recovers more).",
+    manual_s4_title: "Crit Evasion",
+    manual_s4_body: "Adjusted by Fill-Blank quiz performance. Correct → evasion drops (higher crit rate → word graduates faster). Wrong → evasion rises (lower crit rate → word sticks around). No-hints mode doubles the reward for correct answers.",
+    manual_s5_title: "Fill-Blank Notes",
+    manual_s5_body: "Choices are randomly drawn from your vocab, not semantically curated. Blank matching is naive string match — may miss conjugated/declined forms. That's why it's called 'Naive'.",
+    manual_s6_title: "Breakthrough",
+    manual_s6_body: "Count of times a word was returned from Hall of Fame to the vocabulary notebook.",
   },
 };
 
