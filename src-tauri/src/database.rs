@@ -638,8 +638,8 @@ pub fn decrease_hp(conn: &Connection, vocab_id: i64) -> HpChangeResult {
         }
     };
 
-    // Calculate crit rate from crit_evasion
-    let crit_rate = (-word.crit_evasion / 100.0).clamp(0.0, 1.0);
+    // Calculate 暴击率 (your crit rate when attacking the word)
+    let crit_rate = (0.5 - word.crit_evasion / 100.0).clamp(0.0, 1.0);
 
     // Roll for crit
     use rand::Rng;
@@ -704,8 +704,8 @@ pub fn increase_hp(conn: &Connection, vocab_id: i64) -> HpChangeResult {
         }
     };
 
-    // Calculate crit rate from crit_evasion (same rate for both directions)
-    let crit_rate = (-word.crit_evasion / 100.0).clamp(0.0, 1.0);
+    // Calculate 被暴击率 (word's crit rate when counterattacking)
+    let crit_rate = (0.5 + word.crit_evasion / 100.0).clamp(0.0, 1.0);
 
     // Roll for crit (被暴击)
     use rand::Rng;
@@ -1174,7 +1174,7 @@ pub fn submit_fill_blank_answer(
 
     if is_correct {
         // Correct answer
-        let correct_delta = if no_helper { -20.0 } else { -10.0 };
+        let correct_delta = if no_helper { -10.0 } else { -5.0 };
         let distractor_delta = if no_helper { -6.0 } else { -3.0 };
 
         for &wid in &all_choice_ids {
@@ -1186,7 +1186,7 @@ pub fn submit_fill_blank_answer(
         // Wrong answer
         for &wid in &all_choice_ids {
             let delta = if wid == chosen_word_id || wid == correct_word_id {
-                10.0 // wrongly chosen or missed correct
+                5.0 // wrongly chosen or missed correct
             } else {
                 -3.0 // correctly not chosen
             };

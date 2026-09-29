@@ -4,6 +4,9 @@ A desktop vocabulary learning app that picks random sentences from your local li
 
 ---
 
+
+v2.2.1 (2026-09-29): Split crit into dual rates (暴击率 / 被暴击率, base 50%) with rebalanced fill-blank evasion deltas.
+
 v2.2.0 (2026-09-27): Fill-in-the-blank quiz page with crit system. Word highlighting in encounter sentences. Hall of Fame encounter display now shows all translations. Page state preserved across tab switches. 使用说明 (manual) modal with usage guide. Jump-to-page-1 buttons. Encounter history expanded by default. Dictionary link in word records.
 
 v2.1.0 (2026-09-24): Draw sentences from a specific work by ID. Wordbook & Hall of Fame now paginated (50/page) with page-jump navigation, starts-with search with dropdown, per-word encounter history pagination (5/page), and scroll-to-top/bottom buttons. Local estimated API usage tracking (chars/month).
@@ -65,6 +68,8 @@ lingo-text-of-own/
 
 **Gamified Learning System**
 - HP tracking: starts at 3, "Seems familiar" (-1), "Don't know well" (+2), HP=0 graduates to Hall of Fame
+- Crit system: dual crit rates (暴击率 / 被暴击率) derived from per-word evasion stat, adding bonus damage or recovery on HP changes
+- Fill-in-the-blank quizzes for active recall, adjusting crit evasion based on performance
 - Breakthrough system: return mastered words to active study when needed
 - Daily activity tracking with visual chart (7-day, 30-day, yearly views)
 - Learning record stored locally in SQLite

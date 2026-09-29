@@ -455,7 +455,7 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
       const result = await increaseHp(word.id);
       const critPct = Math.round(result.crit_rate * 100);
       const critText = result.was_crit ? t("crit_hit_enemy", lang) : t("crit_miss", lang);
-      showToast(`${t("crit_rate_label", lang)} ${critPct}% — ${critText} ${result.message}`);
+      showToast(`${t("crit_rate_enemy_label", lang)} ${critPct}% — ${critText} ${result.message}`);
       logWordReviewed(word.lang).catch(console.error);
       onRefresh();
     } catch (e) {
@@ -530,7 +530,9 @@ function WordItem({ word, expanded, highlighted, onToggle, lang, supportedLangs,
                 {t("crit_evasion_label", lang)}={word.crit_evasion ?? 0}
               </span>
               <span style={{ marginLeft: 6, color: "var(--text-muted)" }}>
-                ({t("crit_rate_label", lang)} {Math.round(Math.max(0, Math.min(1, -(word.crit_evasion ?? 0) / 100)) * 100)}%)
+                ({t("crit_rate_label", lang)} {Math.round(Math.max(0, Math.min(1, 0.5 - (word.crit_evasion ?? 0) / 100)) * 100)}%
+                {" / "}
+                {t("crit_rate_enemy_label", lang)} {Math.round(Math.max(0, Math.min(1, 0.5 + (word.crit_evasion ?? 0) / 100)) * 100)}%)
               </span>
               {word.breakthrough > 0 && (
                 <span style={{ marginLeft: 8 }}>
